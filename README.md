@@ -67,3 +67,4 @@ Plateforme composee de :
 - le projet utilise `Tesseract.js`, mais les fichiers utiles ont ete copies dans `vendor/`
 - l'extension peut continuer a fonctionner seule pour l'OCR et le pre-remplissage
 - la synchronisation Laravel suppose que `php artisan serve` tourne localement
+# extension-visa
