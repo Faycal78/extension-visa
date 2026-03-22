@@ -354,11 +354,35 @@ async function sourceToBlob(source) {
   }
 
   if (typeof source === "string") {
+    if (source.startsWith("data:")) {
+      return dataUrlToBlob(source);
+    }
+
     const response = await fetch(source);
     return response.blob();
   }
 
   throw new Error("Format d'image non pris en charge.");
+}
+
+function dataUrlToBlob(dataUrl) {
+  const match = dataUrl.match(/^data:([^;,]+)?(?:;base64)?,(.*)$/);
+
+  if (!match) {
+    throw new Error("Image inline invalide.");
+  }
+
+  const mimeType = match[1] || "application/octet-stream";
+  const encoded = match[2] || "";
+  const isBase64 = dataUrl.includes(";base64,");
+  const binary = isBase64 ? atob(encoded) : decodeURIComponent(encoded);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return new Blob([bytes], { type: mimeType });
 }
 
 async function loadDrawable(blob) {
