@@ -258,10 +258,10 @@ async function syncToBackend() {
   };
 
   try {
-    setBackendStatus("Envoi au backend Laravel...");
+    setBackendStatus("Envoi au dashboard web...");
     syncButton.disabled = true;
 
-    const response = await fetch(`${backendBaseUrl}/api/passport-submissions`, {
+    const response = await fetch(buildSubmissionEndpoint(backendBaseUrl), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -276,7 +276,7 @@ async function syncToBackend() {
     }
 
     const result = await response.json();
-    const dashboardUrl = result.dashboard_url || `${backendBaseUrl}/`;
+    const dashboardUrl = result.dashboard_url || buildDashboardUrl(backendBaseUrl);
     setBackendStatus(`Envoye au backend. ID ${result.id}. Dashboard: ${dashboardUrl}`);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erreur reseau.";
@@ -451,7 +451,7 @@ function resetResult() {
   resultEl.classList.add("empty");
   fieldsResultEl.textContent = "Aucun champ detecte pour le moment.";
   fieldsResultEl.classList.add("empty");
-  setBackendStatus("Le backend doit etre lance localement avec `php artisan serve`.");
+  setBackendStatus("Entrez l'URL racine du dashboard web, puis utilisez `Envoyer au backend`.");
 }
 
 function handleError(error, fallbackMessage) {
@@ -491,6 +491,22 @@ function persistBackendUrl() {
 
 function normalizeBackendUrl(value) {
   return String(value || "").trim().replace(/\/+$/, "");
+}
+
+function buildSubmissionEndpoint(baseUrl) {
+  if (/passport-submissions(?:\.php)?$/.test(baseUrl)) {
+    return baseUrl;
+  }
+
+  return `${baseUrl}/api/passport-submissions.php`;
+}
+
+function buildDashboardUrl(baseUrl) {
+  if (/index\.php$/.test(baseUrl)) {
+    return baseUrl;
+  }
+
+  return `${baseUrl}/index.php`;
 }
 
 function extractPassportData(text) {
