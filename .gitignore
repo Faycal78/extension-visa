@@ -1,0 +1,5 @@
+node_modules/
+server/vendor/
+server/node_modules/
+server/.env
+server/database/database.sqlite

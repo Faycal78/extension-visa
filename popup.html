@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Visa OCR Local</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="panel">
+      <header class="hero">
+        <p class="eyebrow">OCR 100% local</p>
+        <h1>Visa OCR Local</h1>
+        <p class="subtitle">
+          Extraction de texte directement dans l'extension, sans API ni backend.
+        </p>
+      </header>
+
+      <section class="card">
+        <div class="split">
+          <div>
+            <p class="label">Onglet actif</p>
+            <p id="tab-title" class="value">Chargement...</p>
+            <p id="tab-url" class="muted"></p>
+          </div>
+          <div>
+            <label for="language-select" class="label">Langue OCR</label>
+            <select id="language-select" class="select">
+              <option value="fra">Francais</option>
+              <option value="eng">Anglais</option>
+              <option value="fra+eng">Francais + Anglais (plus lent)</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="actions">
+        <button id="capture-button" class="primary">Capturer l'onglet</button>
+        <button id="pick-button" class="secondary">Choisir une image</button>
+        <button id="copy-button" class="secondary" disabled>Copier le texte</button>
+      </section>
+
+      <section class="card">
+        <div class="status-row">
+          <p class="label">Progression</p>
+          <p id="status" class="status">Pret.</p>
+        </div>
+        <div class="progress-track" aria-hidden="true">
+          <div id="progress-bar" class="progress-bar"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <p class="label">Apercu</p>
+        <div class="preview-shell">
+          <img id="preview-image" class="preview-image" alt="Apercu OCR" hidden />
+          <p id="preview-placeholder" class="muted">
+            Capturez l'onglet actif ou chargez une image locale.
+          </p>
+        </div>
+      </section>
+
+      <section class="card">
+        <p class="label">Texte reconnu</p>
+        <pre id="result" class="result empty">Aucun resultat pour le moment.</pre>
+      </section>
+    </main>
+
+    <input id="file-input" type="file" accept="image/*" hidden />
+    <script src="vendor/tesseract/tesseract.min.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

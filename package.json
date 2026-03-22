@@ -1,0 +1,18 @@
+{
+  "name": "ocr-visa",
+  "version": "1.0.0",
+  "description": "Extension Chrome OCR locale, sans API ni backend.",
+  "scripts": {
+    "sync:ocr-assets": "node scripts/sync-ocr-assets.mjs",
+    "postinstall": "npm run sync:ocr-assets"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@tesseract.js-data/eng": "^1.0.0",
+    "@tesseract.js-data/fra": "^1.0.0",
+    "tesseract.js": "^7.0.0"
+  }
+}
