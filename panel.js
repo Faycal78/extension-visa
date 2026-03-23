@@ -526,11 +526,11 @@ function buildSubmissionEndpoint(baseUrl) {
 }
 
 function buildDashboardUrl(baseUrl) {
-  if (/index\.php$/.test(baseUrl)) {
+  if (/\/dashboard$/.test(baseUrl)) {
     return baseUrl;
   }
 
-  return `${baseUrl}/index.php`;
+  return `${baseUrl}/dashboard`;
 }
 
 function extractPassportData(text) {
@@ -775,12 +775,25 @@ function fillPassportFieldsOnPage(passportData) {
   let filledCount = 0;
   const filledKeys = [];
 
+  const capagoResult = fillCapagoKnownLayout();
+  capagoResult.usedElements.forEach((element) => used.add(element));
+  filledCount += capagoResult.filledCount;
+  filledKeys.push(...capagoResult.filledKeys);
+
   filledCount += fillGroupedDateFields(
     passportData.birthDay,
     passportData.birthMonth,
     passportData.birthYear,
     ["date de naissance", "date of birth", "naissance", "dob"],
-    "birthDateGroup"
+    "birth"
+  );
+
+  filledCount += fillGroupedDateFields(
+    passportData.expiryDay,
+    passportData.expiryMonth,
+    passportData.expiryYear,
+    ["date d expiration", "date of expiry", "expiration", "expiry", "expire"],
+    "expiry"
   );
 
   const specs = [
@@ -925,7 +938,10 @@ function fillPassportFieldsOnPage(passportData) {
         continue;
       }
 
-      const searchText = getSearchText(element);
+      const fieldText = getSearchText(element);
+      const containerText = getContainerSearchText(element);
+      const searchText = `${fieldText} ${containerText}`.trim();
+
       if (!searchText || !spec.matcher(searchText, element)) {
         continue;
       }
@@ -976,9 +992,16 @@ function fillPassportFieldsOnPage(passportData) {
       return false;
     }
 
+    Array.from(element.options).forEach((entry) => {
+      entry.selected = false;
+    });
+
+    option.selected = true;
+    element.selectedIndex = Array.from(element.options).indexOf(option);
     element.value = option.value;
-    dispatchFieldEvents(element);
-    return true;
+    syncSelectricUi(element, option);
+    dispatchSelectEvents(element);
+    return element.value === option.value || element.selectedIndex >= 0;
   }
 
   function pickSelectOption(element, key, value) {
@@ -993,28 +1016,287 @@ function fillPassportFieldsOnPage(passportData) {
   }
 
   function normalizedOptionCandidates(key, value) {
-    const candidates = [normalized(value)];
+    const normalizedValue = normalized(value);
+    const candidates = [normalizedValue];
 
     if (key === "title") {
-      if (normalized(value) === "mr") {
-        candidates.push("m", "mr", "m.", "monsieur", "sir");
-      } else if (normalized(value) === "mrs") {
-        candidates.push("mme", "mrs", "mrs.", "madame", "ms", "miss");
+      if (["mr", "m", "monsieur", "sir"].includes(normalizedValue)) {
+        candidates.push("m", "mr", "monsieur", "sir");
+      }
+
+      if (
+        ["ms", "mrs", "miss", "madame", "mme", "mademoiselle", "mlle"].includes(normalizedValue)
+      ) {
+        candidates.push("ms", "mrs", "miss", "madame", "mme", "mademoiselle", "mlle");
       }
     }
 
     if (key === "sex") {
-      if (normalized(value) === "m") {
+      if (normalizedValue === "m") {
         candidates.push("male", "masculin", "homme");
-      } else if (normalized(value) === "f") {
+      } else if (normalizedValue === "f") {
         candidates.push("female", "feminin", "femme");
       }
     }
 
-    return candidates.filter(Boolean);
+    if (/day$/i.test(key)) {
+      candidates.push(...buildDayCandidates(value));
+    }
+
+    if (/month$/i.test(key)) {
+      candidates.push(...buildMonthCandidates(value));
+    }
+
+    if (/year$/i.test(key)) {
+      candidates.push(String(Number(value || 0)));
+    }
+
+    return [...new Set(candidates.filter(Boolean))];
   }
 
-  function fillGroupedDateFields(day, month, year, keywords, groupKey) {
+  function fillCapagoKnownLayout() {
+    if (!/capago\.eu$/i.test(window.location.hostname)) {
+      return { filledCount: 0, filledKeys: [], usedElements: [] };
+    }
+
+    const section = findCapagoApplicantSection();
+    if (!section) {
+      return { filledCount: 0, filledKeys: [], usedElements: [] };
+    }
+
+    const localUsed = [];
+    const localKeys = [];
+    let localCount = 0;
+
+    const visibleSelects = Array.from(section.querySelectorAll("select")).filter(isVisibleElement);
+    const visibleInputs = Array.from(section.querySelectorAll("input, textarea"))
+      .filter(isVisibleElement)
+      .filter((element) => {
+        if (!(element instanceof HTMLInputElement)) {
+          return true;
+        }
+
+        const blockedTypes = new Set(["hidden", "file", "password", "submit", "button", "reset", "image", "checkbox", "radio"]);
+        return !blockedTypes.has(element.type);
+      });
+
+    const titleSelect =
+      section.querySelector('.field-wrapper[data-input="title"] select') ||
+      pickFieldInSection(section, "select", ["titre", "civilite"]) ||
+      visibleSelects[0] ||
+      null;
+    const surnameInput = pickFieldInSection(section, "input", ["nom de famille"]) || visibleInputs[0] || null;
+    const givenNamesInput = pickFieldInSection(section, "input", ["prenom"]) || visibleInputs[1] || null;
+    const passportInput =
+      pickFieldInSection(section, "input", ["numero du passeport", "numero passeport"]) ||
+      visibleInputs.find((element) => {
+        const context = getElementTextContext(element);
+        return context.includes("passeport");
+      }) ||
+      visibleInputs[5] ||
+      null;
+    const birthSelects =
+      pickCapagoBirthSelects(section) ||
+      pickDateSelectsInSection(section, ["date de naissance", "naissance"]) ||
+      visibleSelects.slice(1, 4);
+
+    localCount += assignIfPresent(titleSelect, "title", passportData.title, "title");
+    localCount += assignIfPresent(surnameInput, "surname", passportData.surname, "surname");
+    localCount += assignIfPresent(givenNamesInput, "givenNames", passportData.givenNames, "givenNames");
+    localCount += assignIfPresent(passportInput, "passportNumber", passportData.passportNumber, "passportNumber");
+
+    if (birthSelects?.length >= 3 && passportData.birthDay && passportData.birthMonth && passportData.birthYear) {
+      const dateValues = [passportData.birthDay, passportData.birthMonth, passportData.birthYear];
+      const dateKeys = ["birthDay", "birthMonth", "birthYear"];
+
+      birthSelects.slice(0, 3).forEach((element, index) => {
+        if (assignIfPresent(element, dateKeys[index], dateValues[index], "birthDateGroup")) {
+          localCount += 1;
+        }
+      });
+    }
+
+    return {
+      filledCount: localCount,
+      filledKeys: [...new Set(localKeys)],
+      usedElements: localUsed
+    };
+
+    function assignIfPresent(element, key, value, filledKey) {
+      if (!element || !value) {
+        return 0;
+      }
+
+      if (!applyValue(element, key, value)) {
+        return 0;
+      }
+
+      localUsed.push(element);
+      localKeys.push(filledKey);
+      return 1;
+    }
+  }
+
+  function findCapagoApplicantSection() {
+    const headings = Array.from(document.querySelectorAll("h1, h2, h3, h4, h5, h6, div, p, span"));
+    const marker = headings.find((element) =>
+      normalized(element.textContent || "").includes("demandeur 1 interlocuteur principal")
+    );
+
+    if (!marker) {
+      return null;
+    }
+
+    let current = marker.parentElement;
+    while (current && current !== document.body) {
+      const inputCount = current.querySelectorAll("input, select, textarea").length;
+      if (inputCount >= 8) {
+        return current;
+      }
+      current = current.parentElement;
+    }
+
+    return marker.parentElement;
+  }
+
+  function pickFieldInSection(section, selector, keywords) {
+    const fields = Array.from(section.querySelectorAll(selector)).filter((element) => !element.disabled && !element.readOnly);
+
+    return fields.find((element) => hasAny(getElementTextContext(element), keywords)) || null;
+  }
+
+  function pickDateSelectsInSection(section, keywords) {
+    const selects = Array.from(section.querySelectorAll("select")).filter(isVisibleElement);
+    let bestRun = null;
+
+    for (let index = 0; index <= selects.length - 3; index += 1) {
+      const run = selects.slice(index, index + 3);
+      const context = normalized(run.map((element) => getElementTextContext(element)).join(" "));
+
+      if (!hasAny(context, keywords)) {
+        continue;
+      }
+
+      bestRun = run;
+      break;
+    }
+
+    return bestRun;
+  }
+
+  function pickCapagoBirthSelects(section) {
+    const birthWrapper = section.querySelector('.field-wrapper[data-input="birth"]');
+    if (!birthWrapper) {
+      return null;
+    }
+
+    const daySelect = birthWrapper.querySelector("select.day");
+    const monthSelect = birthWrapper.querySelector("select.month");
+    const yearSelect = birthWrapper.querySelector("select.year");
+
+    if (!(daySelect && monthSelect && yearSelect)) {
+      return null;
+    }
+
+    return [daySelect, monthSelect, yearSelect];
+  }
+
+  function getElementTextContext(element) {
+    let current = element;
+
+    while (current && current !== document.body) {
+      const fieldCount = current.querySelectorAll("input, select, textarea").length;
+      const text = normalized(current.innerText || current.textContent || "");
+
+      if (fieldCount >= 1 && fieldCount <= 4 && text) {
+        return text;
+      }
+
+      current = current.parentElement;
+    }
+
+    return getContainerSearchText(element);
+  }
+
+  function isVisibleElement(element) {
+    if (!element) {
+      return false;
+    }
+
+    const style = window.getComputedStyle(element);
+    if (style.display === "none" || style.visibility === "hidden") {
+      return false;
+    }
+
+    return element.offsetParent !== null || style.position === "fixed";
+  }
+
+  function syncSelectricUi(element, option) {
+    const wrapper = element.closest(".selectric-wrapper");
+    if (!wrapper) {
+      return;
+    }
+
+    const label = wrapper.querySelector(".selectric .label");
+    if (label) {
+      label.textContent = option.textContent || option.value || "";
+    }
+
+    const optionIndex = Array.from(element.options).indexOf(option);
+    wrapper.querySelectorAll(".selectric-items li").forEach((item) => {
+      item.classList.remove("selected");
+    });
+
+    const activeItem = wrapper.querySelector(`.selectric-items li[data-index="${optionIndex}"]`);
+    if (activeItem) {
+      activeItem.classList.add("selected");
+    }
+
+    const maybeJQuery = window.jQuery || window.$;
+    if (typeof maybeJQuery === "function") {
+      try {
+        maybeJQuery(element).trigger("change");
+        if (typeof maybeJQuery(element).selectric === "function") {
+          maybeJQuery(element).selectric("refresh");
+        }
+      } catch {}
+    }
+  }
+
+  function buildDayCandidates(value) {
+    const numericValue = Number(value);
+    if (!numericValue) {
+      return [];
+    }
+
+    return [String(numericValue), String(numericValue).padStart(2, "0"), `${numericValue}.`];
+  }
+
+  function buildMonthCandidates(value) {
+    const numericValue = Number(value);
+    if (!numericValue || numericValue < 1 || numericValue > 12) {
+      return [];
+    }
+
+    const monthNames = {
+      1: ["janvier", "january", "jan"],
+      2: ["fevrier", "february", "feb"],
+      3: ["mars", "march", "mar"],
+      4: ["avril", "april", "apr"],
+      5: ["mai", "may"],
+      6: ["juin", "june", "jun"],
+      7: ["juillet", "july", "jul"],
+      8: ["aout", "august", "aug"],
+      9: ["septembre", "september", "sep", "sept"],
+      10: ["octobre", "october", "oct"],
+      11: ["novembre", "november", "nov"],
+      12: ["decembre", "december", "dec"]
+    };
+
+    return [String(numericValue), String(numericValue).padStart(2, "0"), `${numericValue}.`, ...(monthNames[numericValue] || [])];
+  }
+
+  function fillGroupedDateFields(day, month, year, keywords, groupKeyPrefix) {
     if (!(day && month && year)) {
       return 0;
     }
@@ -1054,35 +1336,39 @@ function fillPassportFieldsOnPage(passportData) {
 
     const ordered = orderDateFields(bestGroup.elements).slice(0, 3);
     const values = [day, month, year];
+    const keys = [`${groupKeyPrefix}Day`, `${groupKeyPrefix}Month`, `${groupKeyPrefix}Year`];
     let count = 0;
 
     ordered.forEach((element, index) => {
-      if (applyValue(element, groupKey, values[index])) {
+      if (applyValue(element, keys[index], values[index])) {
         used.add(element);
         count += 1;
       }
     });
 
     if (count) {
-      filledKeys.push(groupKey);
+      filledKeys.push(`${groupKeyPrefix}DateGroup`);
     }
 
     return count;
   }
 
   function getFieldGroupRoot(element) {
-    return (
-      element.closest("[data-testid], .form-group, .field, .input-group, .row, .col, .mb-3, .mb-2, .mb-4") ||
-      element.parentElement ||
-      document.body
-    );
+    let current = element.parentElement;
+
+    while (current && current !== document.body) {
+      const fields = current.querySelectorAll("select, input");
+      if (fields.length >= 3) {
+        return current;
+      }
+      current = current.parentElement;
+    }
+
+    return element.parentElement || document.body;
   }
 
   function getContainerSearchText(element) {
-    const root =
-      element.closest("[data-testid], .form-group, .field, .input-group, .row, .col, .mb-3, .mb-2, .mb-4") ||
-      element.parentElement ||
-      element;
+    const root = getFieldGroupRoot(element);
 
     return normalized(root.innerText || root.textContent || "");
   }
@@ -1128,8 +1414,18 @@ function fillPassportFieldsOnPage(passportData) {
   }
 
   function dispatchFieldEvents(element) {
+    element.dispatchEvent(new Event("focus", { bubbles: true }));
     element.dispatchEvent(new Event("input", { bubbles: true }));
     element.dispatchEvent(new Event("change", { bubbles: true }));
+    element.dispatchEvent(new Event("blur", { bubbles: true }));
+  }
+
+  function dispatchSelectEvents(element) {
+    element.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    element.dispatchEvent(new Event("focus", { bubbles: true }));
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+    element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     element.dispatchEvent(new Event("blur", { bubbles: true }));
   }
 }
@@ -1250,7 +1546,7 @@ function inferTitleFromSex(value) {
   }
 
   if (value === "F") {
-    return "Mrs";
+    return "Ms";
   }
 
   return "";

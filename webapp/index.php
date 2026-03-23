@@ -1,61 +1,88 @@
 <?php
 declare(strict_types=1);
+
+$path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+$normalizedPath = rtrim($path, '/') ?: '/';
+$isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'], true);
 ?>
 <!doctype html>
 <html lang="fr">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Extension Visa Dashboard</title>
+    <title><?= $isDashboard ? 'Pro Visa Dashboard' : 'Pro Visa | Agence de Visa' ?></title>
     <style>
         :root {
             color-scheme: light;
             --bg:
                 radial-gradient(circle at top right, rgba(214, 117, 57, 0.22), transparent 30%),
                 radial-gradient(circle at bottom left, rgba(12, 120, 140, 0.14), transparent 28%),
-                linear-gradient(165deg, #f5efe6 0%, #e1ebf4 100%);
-            --panel: rgba(255,255,255,0.86);
+                linear-gradient(165deg, #f6efe6 0%, #e0ebf4 100%);
+            --panel: rgba(255,255,255,0.88);
+            --panel-strong: rgba(255,255,255,0.96);
             --text: #17212b;
             --muted: #5d6772;
             --line: rgba(23,33,43,0.1);
             --accent: #af4d12;
             --accent-dark: #8d3f14;
+            --accent-soft: #fff1e7;
+            --secondary: #0d6173;
             --shadow: 0 18px 44px rgba(20,30,45,0.1);
         }
         * { box-sizing: border-box; }
         body { margin: 0; font-family: "Avenir Next", "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
-        .shell { max-width: 1280px; margin: 0 auto; padding: 28px 20px 48px; }
-        .hero h1 { margin: 0; font-size: 36px; line-height: 1.04; }
-        .eyebrow { margin: 0 0 8px; color: var(--accent); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; }
-        .subtitle { margin: 10px 0 0; color: var(--muted); max-width: 760px; line-height: 1.6; }
+        a { color: inherit; text-decoration: none; }
+        .shell { max-width: 1240px; margin: 0 auto; padding: 24px 20px 56px; }
+        .nav {
+            display: flex; justify-content: space-between; align-items: center; gap: 16px;
+            padding: 14px 18px; background: var(--panel); border: 1px solid var(--line);
+            border-radius: 18px; box-shadow: var(--shadow); backdrop-filter: blur(10px);
+        }
+        .brand { display: flex; align-items: center; gap: 12px; font-weight: 900; letter-spacing: .04em; }
+        .brand-mark {
+            width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center;
+            background: linear-gradient(135deg, var(--accent), #d58e4d); color: #fff; font-size: 18px;
+        }
+        .nav-links { display: flex; gap: 16px; align-items: center; color: var(--muted); font-weight: 700; }
+        .nav-cta, button {
+            appearance: none; border: 0; border-radius: 999px; padding: 12px 16px; font: inherit;
+            font-weight: 800; cursor: pointer; background: var(--accent); color: #fff;
+        }
+        .nav-cta.secondary, button.secondary { background: #e8eef4; color: var(--text); }
+        .nav-cta:hover, button:hover { background: var(--accent-dark); }
+        .nav-cta.secondary:hover, button.secondary:hover { background: #dbe5ee; }
+        .hero {
+            display: grid; grid-template-columns: 1.15fr .85fr; gap: 22px; align-items: stretch; margin-top: 22px;
+        }
+        .card {
+            background: var(--panel); border: 1px solid var(--line); border-radius: 24px;
+            box-shadow: var(--shadow); backdrop-filter: blur(10px); padding: 22px;
+        }
+        .eyebrow { margin: 0 0 10px; color: var(--accent); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 900; }
+        h1, h2, h3, p { margin-top: 0; }
+        .hero h1 { font-size: 52px; line-height: 1; margin-bottom: 14px; max-width: 12ch; }
+        .subtitle { color: var(--muted); max-width: 60ch; line-height: 1.65; font-size: 16px; }
+        .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+        .hero-panel {
+            background:
+                linear-gradient(160deg, rgba(13,97,115,.95), rgba(175,77,18,.92)),
+                linear-gradient(160deg, #0d6173, #af4d12);
+            color: #fff;
+        }
+        .hero-panel p { color: rgba(255,255,255,.84); line-height: 1.6; }
         .grid { display: grid; gap: 16px; }
         .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 24px 0; }
-        .layout { grid-template-columns: 1.2fr .8fr; align-items: start; }
-        .card {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: 20px;
-            box-shadow: var(--shadow);
-            backdrop-filter: blur(10px);
-            padding: 18px;
-        }
         .metric-label { margin: 0 0 8px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; font-weight: 800; }
         .metric-value { margin: 0; font-size: 30px; font-weight: 800; }
+        .layout { grid-template-columns: 1.2fr .8fr; align-items: start; }
         .panel-title { margin: 0 0 6px; font-size: 18px; font-weight: 800; }
         .panel-note { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
         .toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 14px; }
-        button {
-            appearance: none; border: 0; border-radius: 999px; padding: 11px 15px; font: inherit; font-weight: 800; cursor: pointer;
-            background: var(--accent); color: #fff;
-        }
-        button.secondary { background: #e8eef4; color: var(--text); }
-        button:hover { background: var(--accent-dark); }
-        button.secondary:hover { background: #dbe5ee; }
         table { width: 100%; border-collapse: collapse; }
         th, td { text-align: left; padding: 12px 10px; border-top: 1px solid var(--line); vertical-align: top; }
         th { border-top: 0; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
         .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
-        .badge { display: inline-block; border-radius: 999px; background: #fff1e7; color: var(--accent); padding: 4px 10px; font-size: 12px; font-weight: 800; }
+        .badge { display: inline-block; border-radius: 999px; background: var(--accent-soft); color: var(--accent); padding: 4px 10px; font-size: 12px; font-weight: 800; }
         form { display: grid; gap: 12px; }
         .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
         label { display: grid; gap: 6px; font-size: 13px; font-weight: 700; }
@@ -66,17 +93,114 @@ declare(strict_types=1);
         .full { grid-column: 1 / -1; }
         .muted { color: var(--muted); }
         .status { margin-top: 10px; color: var(--muted); font-size: 13px; min-height: 20px; }
+        .story { margin-top: 26px; grid-template-columns: 1fr 1fr 1fr; }
+        .story h3 { margin-bottom: 8px; }
+        .story p, .list p { color: var(--muted); line-height: 1.65; }
+        .list { margin-top: 16px; display: grid; gap: 12px; }
+        .list-item { display: grid; grid-template-columns: 38px 1fr; gap: 12px; align-items: start; }
+        .list-badge {
+            width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center;
+            background: var(--accent-soft); color: var(--accent); font-weight: 900;
+        }
         @media (max-width: 980px) {
-            .stats, .layout, .form-grid { grid-template-columns: 1fr; }
+            .hero, .stats, .layout, .form-grid, .story { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 40px; }
+            .nav { flex-direction: column; align-items: flex-start; }
         }
     </style>
 </head>
 <body>
     <main class="shell">
-        <header class="hero">
-            <p class="eyebrow">Dashboard Web + Extension</p>
-            <h1>Extension Visa Control Center</h1>
-            <p class="subtitle">Dashboard web rapide avec statistiques, historique, formulaire de saisie manuelle et API PHP 8.1 compatible avec l’extension Chrome.</p>
+        <nav class="nav">
+            <div class="brand">
+                <div class="brand-mark">PV</div>
+                <div>
+                    <div>PRO VISA</div>
+                    <div class="muted" style="font-size:12px;font-weight:700;">Agence de preparation & suivi visa</div>
+                </div>
+            </div>
+            <div class="nav-links">
+                <a href="/">Accueil</a>
+                <a href="/dashboard">Dashboard</a>
+                <a class="nav-cta" href="/dashboard">Ouvrir le dashboard</a>
+            </div>
+        </nav>
+
+        <?php if (!$isDashboard): ?>
+        <section class="hero">
+            <article class="card">
+                <p class="eyebrow">Agence Pro Visa</p>
+                <h1>Vos demandes de visa, gerees plus vite et plus proprement.</h1>
+                <p class="subtitle">
+                    Pro Visa accompagne les voyageurs, etudiants, familles et professionnels dans la preparation
+                    de leurs dossiers. Nous structurons les informations, verifions les pieces, et fluidifions la
+                    saisie des rendez-vous avec un suivi plus rigoureux.
+                </p>
+                <div class="hero-actions">
+                    <a class="nav-cta" href="/dashboard">Acceder au dashboard</a>
+                    <a class="nav-cta secondary" href="mailto:contact@pv-provisa.com">Contacter l'agence</a>
+                </div>
+                <div class="list">
+                    <div class="list-item">
+                        <div class="list-badge">01</div>
+                        <div>
+                            <h3>Preparation de dossier</h3>
+                            <p>Controle des informations, coherence des documents et reduction des erreurs avant prise de rendez-vous.</p>
+                        </div>
+                    </div>
+                    <div class="list-item">
+                        <div class="list-badge">02</div>
+                        <div>
+                            <h3>Traitement plus rapide</h3>
+                            <p>Centralisation des donnees voyageurs et pre-remplissage des formulaires pour gagner du temps sur les operations repetitives.</p>
+                        </div>
+                    </div>
+                    <div class="list-item">
+                        <div class="list-badge">03</div>
+                        <div>
+                            <h3>Suivi interne</h3>
+                            <p>Tableau de bord, historique des soumissions et saisie manuelle pour garder la main sur chaque dossier client.</p>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            <article class="card hero-panel">
+                <p class="eyebrow" style="color:#ffe0c8;">Pro Visa Method</p>
+                <h2 style="font-size:30px; line-height:1.1;">Une agence orientee execution, pas seulement conseil.</h2>
+                <p>
+                    Notre approche combine verification humaine, organisation des donnees et outils de saisie assistee.
+                    L'objectif est simple : limiter les erreurs de passeport, accelerer la prise en charge et garder
+                    une vision claire de chaque demande.
+                </p>
+                <p>
+                    Cette plateforme permet a l'agence de centraliser les fiches voyageurs et de piloter les dossiers
+                    depuis un seul espace.
+                </p>
+            </article>
+        </section>
+
+        <section class="grid story">
+            <article class="card">
+                <p class="eyebrow">Clarte</p>
+                <h3>Dossiers mieux structures</h3>
+                <p>Chaque fiche voyageur est rassemblee avec les informations essentielles : identite, passeport, naissance, contact et contexte de saisie.</p>
+            </article>
+            <article class="card">
+                <p class="eyebrow">Controle</p>
+                <h3>Moins d'erreurs critiques</h3>
+                <p>Les erreurs sur numero de passeport, nom, prenoms ou date de naissance coutent cher. Pro Visa travaille a les eliminer avant validation.</p>
+            </article>
+            <article class="card">
+                <p class="eyebrow">Suivi</p>
+                <h3>Un point d'entree unique</h3>
+                <p>Le dashboard interne donne une vue rapide des soumissions recues depuis l'extension et des dossiers saisis manuellement.</p>
+            </article>
+        </section>
+        <?php else: ?>
+        <header style="margin-top:24px;">
+            <p class="eyebrow">Dashboard Pro Visa</p>
+            <h1 style="font-size:42px; line-height:1.04; margin-bottom:10px;">Pilotage des soumissions et saisie agence</h1>
+            <p class="subtitle">Statistiques, historique et formulaire manuel relies a l'extension Chrome et au stockage local PHP 8.1.</p>
         </header>
 
         <section class="grid stats">
@@ -90,10 +214,10 @@ declare(strict_types=1);
             <article class="card">
                 <div class="toolbar">
                     <div>
-                        <h2 class="panel-title">Dernières soumissions</h2>
-                        <p class="panel-note">Les données envoyées par l’extension apparaissent ici.</p>
+                        <h2 class="panel-title">Dernieres soumissions</h2>
+                        <p class="panel-note">Les donnees envoyees par l’extension apparaissent ici.</p>
                     </div>
-                    <button type="button" class="secondary" id="refresh-button">Rafraîchir</button>
+                    <button type="button" class="secondary" id="refresh-button">Rafraichir</button>
                 </div>
                 <table>
                     <thead>
@@ -101,7 +225,7 @@ declare(strict_types=1);
                             <th>ID</th>
                             <th>Nom</th>
                             <th>Passeport</th>
-                            <th>Nationalité</th>
+                            <th>Nationalite</th>
                             <th>Statut</th>
                             <th>Date</th>
                         </tr>
@@ -120,13 +244,13 @@ declare(strict_types=1);
                         <label>Nom
                             <input name="surname" required>
                         </label>
-                        <label>Prénoms
+                        <label>Prenoms
                             <input name="givenNames" required>
                         </label>
-                        <label>Numéro de passeport
+                        <label>Numero de passeport
                             <input name="passportNumber">
                         </label>
-                        <label>Nationalité
+                        <label>Nationalite
                             <input name="nationality">
                         </label>
                         <label>Date de naissance
@@ -135,22 +259,24 @@ declare(strict_types=1);
                         <label>Date d'expiration
                             <input type="date" name="expiryDate">
                         </label>
-                        <label>Téléphone
+                        <label>Telephone
                             <input name="mobile_phone">
                         </label>
                         <label>Email
                             <input type="email" name="email">
                         </label>
-                        <label>Civilité
+                        <label>Civilite
                             <select name="title">
-                                <option value="">Sélectionner</option>
+                                <option value="">Selectionner</option>
+                                <option value="Mademoiselle">Mademoiselle</option>
                                 <option value="Mr">Mr</option>
                                 <option value="Mrs">Mrs</option>
+                                <option value="Ms">Ms</option>
                             </select>
                         </label>
                         <label>Sexe
                             <select name="sex">
-                                <option value="">Sélectionner</option>
+                                <option value="">Selectionner</option>
                                 <option value="M">M</option>
                                 <option value="F">F</option>
                             </select>
@@ -164,8 +290,10 @@ declare(strict_types=1);
                 </form>
             </article>
         </section>
+        <?php endif; ?>
     </main>
 
+    <?php if ($isDashboard): ?>
     <script>
         const submissionsBody = document.getElementById('submissions-body');
         const refreshButton = document.getElementById('refresh-button');
@@ -179,8 +307,8 @@ declare(strict_types=1);
 
         async function loadDashboard() {
             const [statsRes, submissionsRes] = await Promise.all([
-                fetch('./api/stats.php').then(r => r.json()),
-                fetch('./api/passport-submissions.php').then(r => r.json()),
+                fetch('/api/stats.php').then(r => r.json()),
+                fetch('/api/passport-submissions.php').then(r => r.json()),
             ]);
 
             document.getElementById('stat-total').textContent = statsRes.stats.total || 0;
@@ -234,7 +362,7 @@ declare(strict_types=1);
 
             formStatus.textContent = 'Enregistrement...';
 
-            const response = await fetch('./api/passport-submissions.php', {
+            const response = await fetch('/api/passport-submissions.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify(payload)
@@ -248,7 +376,7 @@ declare(strict_types=1);
             }
 
             manualForm.reset();
-            formStatus.textContent = `Enregistré. ID ${result.id}.`;
+            formStatus.textContent = `Enregistre. ID ${result.id}.`;
             await loadDashboard();
         }
 
@@ -261,5 +389,6 @@ declare(strict_types=1);
                 .replaceAll("'", '&#039;');
         }
     </script>
+    <?php endif; ?>
 </body>
 </html>

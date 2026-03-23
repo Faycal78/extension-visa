@@ -11,7 +11,8 @@ Plateforme composee de :
 - `webapp/` : dashboard web PHP 8.1
 - base SQLite locale dans `webapp/storage/data.sqlite`
 - API `POST /api/passport-submissions.php`
-- dashboard web sur `index.php`
+- accueil web sur `/`
+- dashboard web sur `/dashboard`
 
 ## Fonctions Extension
 
@@ -40,7 +41,8 @@ Plateforme composee de :
 
 1. Aller dans `webapp/`
 2. Executer `php -S 127.0.0.1:8000`
-3. Ouvrir `http://127.0.0.1:8000/index.php`
+3. Ouvrir `http://127.0.0.1:8000/`
+4. Le dashboard interne est disponible sur `http://127.0.0.1:8000/dashboard`
 
 ## Lancer l'extension
 
