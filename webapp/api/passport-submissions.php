@@ -10,11 +10,18 @@ $pdo = db();
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $rows = $pdo->query(
-        'SELECT id, source_url, source_label, full_name, passport_number, nationality, birth_date, expiry_date, status, created_at
+        'SELECT id, source_url, source_label, title, surname, given_names, full_name, passport_number, nationality,
+                issuing_country, birth_date, expiry_date, sex, raw_text, extracted_data, status, created_at
          FROM passport_submissions
          ORDER BY id DESC
          LIMIT 100'
     )->fetchAll();
+
+    foreach ($rows as &$row) {
+        $decoded = json_decode((string) ($row['extracted_data'] ?? ''), true);
+        $row['extracted_data'] = is_array($decoded) ? $decoded : [];
+    }
+    unset($row);
 
     jsonResponse([
         'ok' => true,
@@ -78,4 +85,3 @@ jsonResponse([
     'id' => $id,
     'dashboard_url' => $dashboardUrl,
 ], 201);
-

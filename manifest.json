@@ -1,17 +1,19 @@
 {
   "manifest_version": 3,
   "name": "Visa OCR Local",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "OCR local dans Chrome relie a un dashboard web PHP.",
   "permissions": ["activeTab", "tabs", "scripting"],
   "host_permissions": [
     "http://127.0.0.1:8000/*",
     "http://localhost:8000/*",
     "http://162.19.98.77:8000/*",
-    "https://162.19.98.77:8000/*"
+    "https://162.19.98.77:8000/*",
+    "https://pv-provisa.com/*",
+    "http://pv-provisa.com/*"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' data: blob: http://127.0.0.1:8000 http://localhost:8000 http://162.19.98.77:8000 https://162.19.98.77:8000;"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' data: blob: http://127.0.0.1:8000 http://localhost:8000 http://162.19.98.77:8000 https://162.19.98.77:8000 https://pv-provisa.com http://pv-provisa.com;"
   },
   "action": {
     "default_title": "Visa OCR Local",

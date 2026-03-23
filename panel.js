@@ -15,12 +15,15 @@ const fileInput = document.getElementById("file-input");
 const fieldsResultEl = document.getElementById("fields-result");
 const backendUrlInput = document.getElementById("backend-url");
 const backendStatusEl = document.getElementById("backend-status");
+const dashboardRecordsSelect = document.getElementById("dashboard-records");
+const loadRecordButton = document.getElementById("load-record-button");
 const { createWorker } = globalThis.Tesseract;
 
 const OCR_LANGUAGE_PATH = chrome.runtime.getURL("vendor/tessdata/4.0.0_best_int");
 const OCR_CORE_PATH = chrome.runtime.getURL("vendor/tesseract-core");
 const OCR_WORKER_PATH = chrome.runtime.getURL("vendor/tesseract/worker.min.js");
 const BACKEND_URL_STORAGE_KEY = "visa-ocr-backend-url";
+const DEFAULT_BACKEND_URL = "https://pv-provisa.com";
 const OCR_MAX_IMAGE_SIDE = 1600;
 const OCR_CAPTURE_QUALITY = 82;
 const OCR_DOCUMENT_MODE = {
@@ -34,6 +37,7 @@ let activePreviewUrl = "";
 let workerPromise = null;
 let activeWorkerLanguage = "";
 let isBusy = false;
+let dashboardRecords = [];
 
 initializePopup();
 captureButton.addEventListener("click", captureActiveTab);
@@ -44,6 +48,8 @@ syncButton.addEventListener("click", syncToBackend);
 copyButton.addEventListener("click", copyTextResult);
 languageSelect.addEventListener("change", handleLanguageChange);
 backendUrlInput.addEventListener("change", persistBackendUrl);
+backendUrlInput.addEventListener("change", loadDashboardRecords);
+loadRecordButton.addEventListener("click", loadSelectedDashboardRecord);
 
 async function initializePopup() {
   resetResult();
@@ -64,6 +70,7 @@ async function initializePopup() {
     tabTitle.textContent = "Impossible de lire l'onglet actif.";
   }
 
+  loadDashboardRecords();
   warmupWorker();
 }
 
@@ -278,6 +285,7 @@ async function syncToBackend() {
     const result = await response.json();
     const dashboardUrl = result.dashboard_url || buildDashboardUrl(backendBaseUrl);
     setBackendStatus(`Envoye au backend. ID ${result.id}. Dashboard: ${dashboardUrl}`);
+    await loadDashboardRecords();
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erreur reseau.";
     setBackendStatus(`Echec de synchronisation: ${message}`);
@@ -498,9 +506,7 @@ function humanizeLanguage(value) {
 
 function hydrateBackendUrl() {
   const savedUrl = localStorage.getItem(BACKEND_URL_STORAGE_KEY);
-  if (savedUrl) {
-    backendUrlInput.value = savedUrl;
-  }
+  backendUrlInput.value = savedUrl || DEFAULT_BACKEND_URL;
 }
 
 function persistBackendUrl() {
@@ -515,6 +521,106 @@ function persistBackendUrl() {
 
 function normalizeBackendUrl(value) {
   return String(value || "").trim().replace(/\/+$/, "");
+}
+
+async function loadDashboardRecords() {
+  const backendBaseUrl = normalizeBackendUrl(backendUrlInput.value) || DEFAULT_BACKEND_URL;
+  const endpoint = buildSubmissionEndpoint(backendBaseUrl);
+
+  try {
+    dashboardRecordsSelect.disabled = true;
+    loadRecordButton.disabled = true;
+
+    const response = await fetch(endpoint, {
+      headers: { Accept: "application/json" }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const result = await response.json();
+    dashboardRecords = Array.isArray(result.items) ? result.items : [];
+    renderDashboardRecords();
+    setBackendStatus(`Dashboard connecte. ${dashboardRecords.length} fiche(s) chargee(s).`);
+  } catch (error) {
+    dashboardRecords = [];
+    renderDashboardRecords();
+    const message = error instanceof Error ? error.message : "Erreur reseau.";
+    setBackendStatus(`Connexion dashboard impossible: ${message}`);
+  } finally {
+    dashboardRecordsSelect.disabled = false;
+    loadRecordButton.disabled = !dashboardRecords.length;
+  }
+}
+
+function renderDashboardRecords() {
+  dashboardRecordsSelect.innerHTML = "";
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = dashboardRecords.length
+    ? "Choisir une fiche enregistree"
+    : "Aucune fiche disponible";
+  dashboardRecordsSelect.appendChild(placeholder);
+
+  dashboardRecords.forEach((record) => {
+    const option = document.createElement("option");
+    option.value = String(record.id);
+    option.textContent = `${record.full_name || "Sans nom"} | ${record.passport_number || "Sans passeport"} | ${record.created_at || ""}`;
+    dashboardRecordsSelect.appendChild(option);
+  });
+}
+
+function loadSelectedDashboardRecord() {
+  const selectedId = dashboardRecordsSelect.value;
+  const record = dashboardRecords.find((item) => String(item.id) === selectedId);
+
+  if (!record) {
+    setBackendStatus("Selectionnez une fiche du dashboard.");
+    return;
+  }
+
+  const extracted = normalizeRecordToPassportData(record);
+  latestText = record.raw_text || "";
+  latestPassportData = extracted;
+  resultEl.textContent = latestText || "Fiche chargee depuis le dashboard.";
+  resultEl.classList.toggle("empty", !latestText);
+  renderPassportData(extracted);
+  copyButton.disabled = !latestText;
+  fillButton.disabled = !hasPassportAutofillData(extracted);
+  syncButton.disabled = !hasPassportAutofillData(extracted);
+  setBackendStatus(`Fiche ${record.id} chargee depuis le dashboard.`);
+  setStatus("Fiche dashboard prete pour le pre-remplissage.");
+}
+
+function normalizeRecordToPassportData(record) {
+  const extracted = record.extracted_data && typeof record.extracted_data === "object" ? record.extracted_data : {};
+  const birthDate = extracted.birthDate || record.birth_date || "";
+  const expiryDate = extracted.expiryDate || record.expiry_date || "";
+  const sex = extracted.sex || record.sex || "";
+  const title = extracted.title || record.title || inferTitleFromSex(sex);
+  const surname = extracted.surname || record.surname || "";
+  const givenNames = extracted.givenNames || record.given_names || "";
+
+  return {
+    surname,
+    givenNames,
+    fullName: extracted.fullName || record.full_name || [givenNames, surname].filter(Boolean).join(" ").trim(),
+    title,
+    passportNumber: extracted.passportNumber || record.passport_number || "",
+    nationality: extracted.nationality || record.nationality || "",
+    issuingCountry: extracted.issuingCountry || record.issuing_country || "",
+    birthDate,
+    expiryDate,
+    sex,
+    birthDay: extractDatePart(birthDate, "day"),
+    birthMonth: extractDatePart(birthDate, "month"),
+    birthYear: extractDatePart(birthDate, "year"),
+    expiryDay: extractDatePart(expiryDate, "day"),
+    expiryMonth: extractDatePart(expiryDate, "month"),
+    expiryYear: extractDatePart(expiryDate, "year")
+  };
 }
 
 function buildSubmissionEndpoint(baseUrl) {
