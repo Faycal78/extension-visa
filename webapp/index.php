@@ -330,7 +330,7 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                                 <option value="">Selectionner</option>
                                 <option value="circulation">Circulation</option>
                                 <option value="primo_demand">Primo-demande</option>
-                                <option value="renewal">Renouvellement</option>
+                                <option value="renewal">Voyageur Frequent (renouvellement)</option>
                                 <option value="prof_org">Membre d'une Organisation Professionnelle</option>
                             </select>
                         </label>
@@ -606,7 +606,7 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
             const labels = {
                 circulation: 'Circulation',
                 primo_demand: 'Primo-demande',
-                renewal: 'Renouvellement',
+                renewal: 'Voyageur Frequent (renouvellement)',
                 prof_org: "Membre d'une Organisation Professionnelle"
             };
 
