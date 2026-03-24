@@ -30,6 +30,182 @@ const OCR_DOCUMENT_MODE = {
   tessedit_pageseg_mode: "6",
   preserve_interword_spaces: "1"
 };
+const VISA_STAY_DURATION_LABEL_MAP = {
+  short_stay_visa: "Court sejour (≤ 90 jours)",
+  long_stay_visa: "Long sejour (> 90 jours)",
+  transit_visa: "Airport transit"
+};
+const TRAVEL_PURPOSE_LABELS_BY_VISA = {
+  short_stay_visa: {
+    establishment: "Etablissement familial ou prive",
+    medical: "Raisons medicales",
+    tourism: "Tourisme",
+    business: "Travailler",
+    family: "Visite familiale ou privee",
+    study: "Etudes"
+  },
+  long_stay_visa: {
+    family: "Installation familiale ou privee (majeur)",
+    family_minor: "Installation familiale ou privee (mineur)",
+    placement: "Stage salarie",
+    work: "Travailler",
+    return: "Visa de retour",
+    visitor: "Visiteur",
+    study: "Etudes"
+  },
+  transit_visa: {
+    transit: "Transit"
+  }
+};
+const TYPE_VISA_LABEL_MAP = {
+  "013-BA3B8": "Ascendant a charge de Francais ou de son conjoint etranger",
+  "013-BC73C": "Conjoint de francais",
+  "013-9ACB7": "Conjoint de scientifique / chercheur",
+  "013-179001": "Enfant majeur a charge de francais",
+  "013-9CF63": "Enfant mineur de Francais",
+  "013-11725B": "Famille de ressortissant UE/EEE/Suisse",
+  "013-B9DF8": "Parent d'enfant francais mineur",
+  "013-1176AB": "Soins medicaux",
+  "013-1C5AE5": "Tourisme / Visite privee",
+  "013-145AB4": "Embauche ou detachement de salarie",
+  "017-D6EC9": "Employe au service d'un etranger ou d'un francais",
+  "013-D37EE": "Manifestation culturelle, artistique, scientifique, sportive y compris mission ponctuelle",
+  "013-377E4": "Mannequin",
+  "013-1501C0": "Marin",
+  "20241025-A210": "Mission officielle diplomate et membre d'une organisation internationale sur passeport ordinaire",
+  "013-3137B": "Scientifique / Chercheur",
+  "013-F59A2": "Stage salarie",
+  "013-DAFD0": "Voyage professionnel",
+  "013-6059B": "En vue de mariage avec un ressortissant francais",
+  "013-8B572": "Membres d'une congregation religieuse relevant du Formulaire Unique",
+  "013-E0806": "Visite familiale",
+  "013-113581": "Visite familiale / enfant ou parent etranger de Francais ou de son conjoint",
+  "013-B3FFD": "Visite privee / conjoint de francais",
+  "013-1FDF5": "Visite privee / famille de UE/EEE/Suisse",
+  "013-124AEA": "Etudiant / Etudiant-Concours",
+  "013-36697": "Stage etudiant",
+  "017-335A8": "Adoption de mineur",
+  "013-16172C": "Enfant mineur (- de 18 ans) de refugie, de beneficiaire de la protection subsidiaire ou d'apatride",
+  "017-1F6082": "Enfant mineur de beneficiaire de l'accord franco-russe",
+  "017-20D9A": "Enfant mineur de scientifique / chercheur",
+  "024-131BCA": "Famille accompagnante beneficiaire passeport talent (Mineur)",
+  "017-568F2": "Frere mineur, soeur mineure de refugie, de beneficiaire de la protection subsidiaire ou d'apatride",
+  "013-19BD3": "Regroupement familial (Enfant mineur, dont enfant mineur de conjoint etranger de Francais)",
+  "013-128EF4": "Ascendant non a charge",
+  "017-E7A42": "Conjoint de beneficiaire de l'accord franco-russe",
+  "013-9AE03": "Conjoint ou concubin de refugie, de beneficiaire de la protection subsidiaire ou d'apatride",
+  "013-56469": "Enfant majeur (19 ans au plus) de refugie, de beneficiaire de la protection subsidiaire ou d'apatride",
+  "013-FE9E": "Enfant majeur a charge de scientifique / chercheur",
+  "024-1C8D5A": "Famille accompagnante beneficiaire passeport talent (Majeur)",
+  "013-59959": "Pere/Mere de refugie, de beneficiaire de la protection subsidiaire ou d'apatride",
+  "013-165103": "Regroupement familial",
+  "013-CA581": "Titulaire d'une rente d'accident du travail ou de maladie professionnelle, versee par un Organisme francais",
+  "013-B8022": "Ayant-droit titulaire d'une rente d'accident du travail ou de maladie professionnelle, versee par un Organisme francais",
+  "013-1757AD": "Visiteur majeur",
+  "013-EC4BA": "Visiteur mineur",
+  "013-5DFA3": "Embauche ou detachement de salarie",
+  "013-32DE2": "Entrepreneur (artisan, industriel ou commercant)",
+  "013-132BBA": "Exercice d'une activite artistique / culturelle",
+  "013-FC764": "Exercice d'une activite scientifique / recherche",
+  "013-27918": "Profession liberale ou independante",
+  "017-3755C": "Etudiant",
+  "013-98892": "Mineur scolarise (primaire, secondaire ou superieur), sejour individuel",
+  "017-1377D6": "Mineur scolarise (primaire, secondaire ou superieur), sejour organise par un organisme specialise",
+  "013-143096": "Stage etudiant",
+  "013-199E9F": "Stage professionnel salarie",
+  "013-E58E6": "Visa de retour",
+  "180713-EU_Family_Visa": "Transit Aeroportuaire"
+};
+const VISA_VARIATION_LABEL_MAP = {
+  "1": "Schengen ( + de 12 ans)",
+  "2": "Schengen (6 - 12 ans)",
+  "3": "Schengen (Moins de 6 ans)",
+  "4": "Transit Aeroportuaire",
+  "5": "DOM (+ de 12 ans)",
+  "6": "DOM (6 - 12 ans)",
+  "7": "CTOM",
+  "8": "DOM (Moins de 6 ans)",
+  "22": "Etudiant",
+  "34": "Conjoint de francais"
+};
+const VISA_CHECKLIST_LABEL_MAP = {
+  "1": "Tourisme / Visite privee",
+  "2": "Tourisme / Visite privee - Mineurs",
+  "3": "CTOM - Tourisme - Adulte",
+  "4": "CTOM - Tourisme - Mineur",
+  "6": "DOM Tourisme - Adulte",
+  "7": "DOM Tourisme - Mineur",
+  "8": "DOM Voyage professionnel",
+  "9": "Voyage professionnel",
+  "11": "Manifestation culturelle, artistique, scientifique, sportive y compris mission ponctuelle",
+  "12": "Mannequin",
+  "13": "Employe au service d'un etranger ou d'un francais",
+  "14": "Embauche ou detachement de salarie",
+  "15": "Scientifique / Chercheur",
+  "16": "Stage salarie",
+  "17": "Marin/Bateau immatricule a l'etranger",
+  "18": "Marin/Bateau immatricule en France",
+  "19": "Conjoint de francais",
+  "20": "Ascendant a charge de Francais ou de son conjoint etranger",
+  "21": "Enfant majeur a charge de francais",
+  "22": "Conjoint de scientifique / chercheur",
+  "23": "Enfant mineur de Francais",
+  "24": "Famille de ressortissant UE/EEE/Suisse",
+  "26": "Parent d'enfant francais mineur",
+  "27": "En vue de mariage avec un ressortissant francais",
+  "28": "Visite familiale - Adulte",
+  "29": "Visite familiale - Mineur",
+  "30": "Visite familiale / Parent etranger de Francais ou de son conjoint",
+  "31": "Visite privee / conjoint de francais",
+  "32": "Visite privee / famille de UE/EEE/Suisse",
+  "33": "Membres d'une congregation religieuse relevant du Formulaire Unique",
+  "34": "Mission officielle diplomate et membre d'une organisation internationale sur passeport ordinaire",
+  "35": "Soins medicaux - Adulte",
+  "36": "Soins medicaux - Mineur",
+  "37": "Stage etudiant",
+  "38": "Etudiant / Etudiant-Concours",
+  "39": "Transit Aeroportuaire",
+  "40": "Embauche ou detachement de salarie - OFII",
+  "41": "Entrepreneur (artisan, industriel ou commercant) - En cas de creation d'activite",
+  "42": "Entrepreneur (artisan, industriel ou commercant) - En cas d'insertion dans une activite existante",
+  "43": "Exercice d'une activite artistique / culturelle",
+  "44": "Exercice d'une activite scientifique / recherche",
+  "45": "Profession liberale ou independante",
+  "47": "Stage etudiant",
+  "48": "Mineur scolarise (primaire, secondaire ou superieur), sejour individuel",
+  "49": "Mineur scolarise (primaire, secondaire ou superieur), sejour organise par un organisme specialise",
+  "50": "Visiteur majeur",
+  "51": "Visiteur mineur",
+  "52": "Ayant-droit titulaire d'une rente d'accident du travail ou de maladie professionnelle, versee par un Organisme francais",
+  "53": "Visa de retour",
+  "55": "Stage professionnel salarie",
+  "61": "Regroupement familial (Enfant mineur, dont enfant mineur de conjoint etranger de Francais) - OFII",
+  "62": "Enfant mineur (- de 18 ans) de refugie, de beneficiaire de la protection subsidiaire ou d'apatride",
+  "63": "Adoption de mineur",
+  "64": "Regroupement familial - OFII",
+  "65": "Titulaire d'une rente d'accident du travail ou de maladie professionnelle, versee par un Organisme francais",
+  "66": "Pere/Mere de refugie, de beneficiaire de la protection subsidiaire ou d'apatride",
+  "67": "Enfant majeur a charge de scientifique / chercheur",
+  "68": "Enfant majeur (19 ans au plus) de refugie, de beneficiaire de la protection subsidiaire ou d'apatride",
+  "69": "Conjoint ou concubin de refugie, de beneficiaire de la protection subsidiaire ou d'apatride",
+  "70": "Ascendant non a charge",
+  "74": "Enfant ou parent etranger de Francais ou de son conjoint",
+  "77": "Soins medicaux - Ancien combattant",
+  "79": "Conjoint de beneficiaire de l'accord franco-russe",
+  "80": "Enfant mineur de beneficiaire de l'accord franco-russe",
+  "81": "Enfant mineur de scientifique / chercheur",
+  "82": "Frere mineur, soeur mineure de refugie, de beneficiaire de la protection subsidiaire ou d'apatride",
+  "88": "Manifestation culturelle, artistique, scientifique, sportive y compris mission ponctuelle - Mineurs",
+  "89": "Famille accompagnante beneficiaire passeport talent (Majeur)",
+  "90": "Famille accompagnante beneficiaire passeport talent (Mineur)",
+  "92": "Etudiant"
+};
+const VISA_FILE_VARIATION_LABEL_MAP = {
+  circulation: "Circulation",
+  primo_demand: "Primo-demande",
+  renewal: "Voyageur Frequent (renouvellement)",
+  prof_org: "Membre d'une Organisation Professionnelle"
+};
 
 let latestText = "";
 let latestPassportData = null;
@@ -595,7 +771,7 @@ function loadSelectedDashboardRecord() {
   }
 
   const extracted = normalizeRecordToPassportData(record);
-  latestText = record.raw_text || "";
+  latestText = record.raw_text || buildRecordSummary(extracted);
   latestPassportData = extracted;
   resultEl.textContent = latestText || "Fiche chargee depuis le dashboard.";
   resultEl.classList.toggle("empty", !latestText);
@@ -639,6 +815,7 @@ function normalizeRecordToPassportData(record) {
     visaFileVariation: extracted.visaFileVariation || "",
     nbTravellers: extracted.nbTravellers || record.nb_travellers || "1",
     formula: extracted.formula || record.formula || "standard",
+    createdAt: record.created_at || "",
     birthDay: extractDatePart(birthDate, "day"),
     birthMonth: extractDatePart(birthDate, "month"),
     birthYear: extractDatePart(birthDate, "year"),
@@ -649,6 +826,51 @@ function normalizeRecordToPassportData(record) {
     departureMonth: extractDatePart(extracted.departureDate || "", "month"),
     departureYear: extractDatePart(extracted.departureDate || "", "year")
   };
+}
+
+function buildRecordSummary(data) {
+  const rows = [
+    ["Passeport", data.passportNumber],
+    ["Nationalite", data.nationality],
+    ["Telephone", data.mobilePhone],
+    ["Email", data.email],
+    ["Naissance", formatDisplayDate(data.birthDate)],
+    ["Depart", formatDisplayDate(data.departureDate)],
+    ["Type de visa", formatVisaStayDurationLabel(data.visaStayDuration)],
+    ["Projet", formatTravelPurposeLabel(data.visaStayDuration, data.travelPurpose)],
+    ["Categorie", formatVisaFileVariationLabel(data.visaFileVariation)],
+    ["Motif principal", formatTypeVisaLabel(data.typeVisa)],
+    ["Variation de visa", formatVisaVariationLabel(data.visaVariation)],
+    ["Situation demandeur", formatVisaChecklistLabel(data.visaChecklist)],
+    ["Demandeurs / Formule", [data.nbTravellers, data.formula].filter(Boolean).join(" · ")],
+    ["Cree le", data.createdAt]
+  ].filter(([, value]) => value);
+
+  return rows.map(([label, value]) => `${label}\n${value}`).join("\n\n");
+}
+
+function formatVisaStayDurationLabel(value) {
+  return VISA_STAY_DURATION_LABEL_MAP[value] || value || "";
+}
+
+function formatTravelPurposeLabel(visaStayDuration, value) {
+  return TRAVEL_PURPOSE_LABELS_BY_VISA[visaStayDuration]?.[value] || value || "";
+}
+
+function formatTypeVisaLabel(value) {
+  return TYPE_VISA_LABEL_MAP[value] || value || "";
+}
+
+function formatVisaVariationLabel(value) {
+  return VISA_VARIATION_LABEL_MAP[value] || value || "";
+}
+
+function formatVisaChecklistLabel(value) {
+  return VISA_CHECKLIST_LABEL_MAP[value] || value || "";
+}
+
+function formatVisaFileVariationLabel(value) {
+  return VISA_FILE_VARIATION_LABEL_MAP[value] || value || "";
 }
 
 function buildSubmissionEndpoint(baseUrl) {
@@ -851,15 +1073,15 @@ function renderPassportData(data) {
     ["Telephone", data.mobilePhone],
     ["Email", data.email],
     ["Date de depart", formatDisplayDate(data.departureDate)],
-    ["Type de visa", data.visaStayDuration],
-    ["Projet", data.travelPurpose],
-    ["Motif principal", data.typeVisa],
-    ["Variation visa", data.visaVariation],
-    ["Situation demandeur", data.visaChecklist],
-    ["Categorie demandeur", data.visaFileVariation],
+    ["Type de visa", formatVisaStayDurationLabel(data.visaStayDuration)],
+    ["Projet", formatTravelPurposeLabel(data.visaStayDuration, data.travelPurpose)],
+    ["Motif principal", formatTypeVisaLabel(data.typeVisa)],
+    ["Variation de visa", formatVisaVariationLabel(data.visaVariation)],
+    ["Situation demandeur", formatVisaChecklistLabel(data.visaChecklist)],
+    ["Categorie", formatVisaFileVariationLabel(data.visaFileVariation)],
     ["Sexe", data.sex],
-    ["Nombre de demandeurs", data.nbTravellers],
-    ["Formule", data.formula]
+    ["Demandeurs / Formule", [data.nbTravellers, data.formula].filter(Boolean).join(" · ")],
+    ["Cree le", data.createdAt]
   ].filter(([, value]) => value);
 
   if (!rows.length) {
