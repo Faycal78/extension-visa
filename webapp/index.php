@@ -312,7 +312,7 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                             </select>
                         </label>
                         <label>Votre projet
-                            <select name="travelPurpose">
+                            <select name="travelPurpose" id="travel-purpose-select">
                                 <option value="">Selectionner</option>
                                 <option value="etablissement_familial_prive">Etablissement familial ou prive</option>
                                 <option value="raisons_medicales">Raisons medicales</option>
@@ -323,14 +323,21 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                             </select>
                         </label>
                         <label>Motif principal du sejour
-                            <input name="typeVisa">
+                            <select name="typeVisa" id="type-visa-select">
+                                <option value="">Selectionner</option>
+                                <option value="Type 1">Type 1</option>
+                                <option value="Type 2">Type 2</option>
+                                <option value="Type 3">Type 3</option>
+                                <option value="Type 4">Type 4</option>
+                                <option value="Type 5">Type 5</option>
+                            </select>
                         </label>
                         <label>Categorie du demandeur
                             <select name="visaFileVariation">
                                 <option value="">Selectionner</option>
                                 <option value="circulation">Circulation</option>
                                 <option value="primo_demand">Primo-demande</option>
-                                <option value="renewal">Voyageur Frequent (renouvellement)</option>
+                                <option value="renewal">Renouvellement</option>
                                 <option value="prof_org">Membre d'une Organisation Professionnelle</option>
                             </select>
                         </label>
@@ -352,10 +359,49 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
         const refreshButton = document.getElementById('refresh-button');
         const manualForm = document.getElementById('manual-form');
         const formStatus = document.getElementById('form-status');
+        const travelPurposeSelect = manualForm.elements.travelPurpose;
+        const visaStayDurationSelect = manualForm.elements.visaStayDuration;
+        const typeVisaSelect = manualForm.elements.typeVisa;
         let dashboardItems = [];
+        const travelPurposeOptionsByVisa = {
+            short_stay_visa: [
+                ['etablissement_familial_prive', 'Etablissement familial ou prive'],
+                ['raisons_medicales', 'Raisons medicales'],
+                ['tourisme', 'Tourisme'],
+                ['travailler', 'Travailler'],
+                ['visite_familiale_privee', 'Visite familiale ou privee'],
+                ['etudes', 'Etudes']
+            ],
+            long_stay_visa: [
+                ['installation_familiale_privee_majeur', 'Installation familiale ou privee (majeur)'],
+                ['installation_familiale_privee_mineur', 'Installation familiale ou privee (mineur)'],
+                ['stage_salarie', 'Stage salarie'],
+                ['travailler', 'Travailler'],
+                ['visa_de_retour', 'Visa de retour'],
+                ['visiteur', 'Visiteur'],
+                ['etudes', 'Etudes']
+            ],
+            transit_visa: [
+                ['airport_transit', 'Airport transit']
+            ]
+        };
+        const typeVisaOptions = [
+            ['', 'Selectionner'],
+            ['Type 1', 'Type 1'],
+            ['Type 2', 'Type 2'],
+            ['Type 3', 'Type 3'],
+            ['Type 4', 'Type 4'],
+            ['Type 5', 'Type 5']
+        ];
 
         refreshButton.addEventListener('click', loadDashboard);
         manualForm.addEventListener('submit', submitManualForm);
+        visaStayDurationSelect.addEventListener('change', () => {
+            syncTravelPurposeOptions(visaStayDurationSelect.value);
+        });
+
+        syncTravelPurposeOptions(visaStayDurationSelect.value || 'short_stay_visa');
+        syncTypeVisaOptions();
 
         loadDashboard();
 
@@ -428,7 +474,7 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                         </div>
                         <div class="record-item">
                             <p class="record-label">Motif principal</p>
-                            <p class="record-value">${escapeHtml(extracted(row).typeVisa || '')}</p>
+                            <p class="record-value">${escapeHtml(displayTypeVisa(row))}</p>
                         </div>
                         <div class="record-item">
                             <p class="record-label">Demandeurs / Formule</p>
@@ -502,6 +548,8 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
             }
 
             manualForm.reset();
+            syncTravelPurposeOptions(visaStayDurationSelect.value || 'short_stay_visa');
+            syncTypeVisaOptions();
             formStatus.textContent = `Enregistre. ID ${result.id}.`;
             await loadDashboard();
         }
@@ -528,8 +576,8 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
             manualForm.elements.sex.value = data.sex || row.sex || '';
             manualForm.elements.departureDate.value = data.departureDate || '';
             manualForm.elements.visaStayDuration.value = data.visaStayDuration || 'short_stay_visa';
-            manualForm.elements.travelPurpose.value = data.travelPurpose || '';
-            manualForm.elements.typeVisa.value = data.typeVisa || '';
+            syncTravelPurposeOptions(manualForm.elements.visaStayDuration.value, data.travelPurpose || '');
+            syncTypeVisaOptions(data.typeVisa || '');
             manualForm.elements.visaFileVariation.value = data.visaFileVariation || '';
             manualForm.elements.raw_text.value = row.raw_text || '';
             formStatus.textContent = `Fiche ${row.id} chargee dans le formulaire. Modifiez puis enregistrez.`;
@@ -542,8 +590,8 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
 
         function displayVisaStay(row) {
             const value = extracted(row).visaStayDuration || '';
-            if (value === 'short_stay_visa') return 'Court sejour';
-            if (value === 'long_stay_visa') return 'Long sejour';
+            if (value === 'short_stay_visa') return 'Court sejour (≤ 90 jours)';
+            if (value === 'long_stay_visa') return 'Long sejour (> 90 jours)';
             if (value === 'transit_visa') return 'Airport transit';
             return value;
         }
@@ -556,10 +604,20 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                 tourisme: 'Tourisme',
                 travailler: 'Travailler',
                 visite_familiale_privee: 'Visite familiale ou privee',
-                etudes: 'Etudes'
+                etudes: 'Etudes',
+                installation_familiale_privee_majeur: 'Installation familiale ou privee (majeur)',
+                installation_familiale_privee_mineur: 'Installation familiale ou privee (mineur)',
+                stage_salarie: 'Stage salarie',
+                visa_de_retour: 'Visa de retour',
+                visiteur: 'Visiteur',
+                airport_transit: 'Airport transit'
             };
 
             return labels[value] || value;
+        }
+
+        function displayTypeVisa(row) {
+            return extracted(row).typeVisa || '';
         }
 
         function displayCategory(row) {
@@ -567,11 +625,35 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
             const labels = {
                 circulation: 'Circulation',
                 primo_demand: 'Primo-demande',
-                renewal: 'Voyageur Frequent',
-                prof_org: 'Organisation Professionnelle'
+                renewal: 'Renouvellement',
+                prof_org: "Membre d'une Organisation Professionnelle"
             };
 
             return labels[value] || value;
+        }
+
+        function syncTravelPurposeOptions(visaStayDuration, selectedValue = '') {
+            const selected = selectedValue || travelPurposeSelect.value || '';
+            const options = travelPurposeOptionsByVisa[visaStayDuration] || [];
+            travelPurposeSelect.innerHTML = [
+                '<option value="">Selectionner</option>',
+                ...options.map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`)
+            ].join('');
+
+            if (selected && options.some(([value]) => value === selected)) {
+                travelPurposeSelect.value = selected;
+            }
+        }
+
+        function syncTypeVisaOptions(selectedValue = '') {
+            const selected = selectedValue || typeVisaSelect.value || '';
+            typeVisaSelect.innerHTML = typeVisaOptions
+                .map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`)
+                .join('');
+
+            if (selected && typeVisaOptions.some(([value]) => value === selected)) {
+                typeVisaSelect.value = selected;
+            }
         }
 
         function displayDate(value) {

@@ -1384,6 +1384,75 @@ function fillPassportFieldsOnPage(passportData) {
       if (normalizedValue.includes("etudes")) {
         candidates.push("etudes", "etudes");
       }
+      if (normalizedValue.includes("installation familiale") || normalizedValue.includes("majeur")) {
+        candidates.push(
+          "installation_familiale_privee_majeur",
+          "installation familiale ou privee (majeur)",
+          "installation familiale ou privee majeur"
+        );
+      }
+      if (normalizedValue.includes("mineur")) {
+        candidates.push(
+          "installation_familiale_privee_mineur",
+          "installation familiale ou privee (mineur)",
+          "installation familiale ou privee mineur"
+        );
+      }
+      if (normalizedValue.includes("stage")) {
+        candidates.push("stage_salarie", "stage salarie");
+      }
+      if (normalizedValue.includes("retour")) {
+        candidates.push("visa_de_retour", "visa de retour");
+      }
+      if (normalizedValue.includes("visiteur")) {
+        candidates.push("visiteur", "visiteur");
+      }
+      if (normalizedValue.includes("airport transit")) {
+        candidates.push("airport_transit", "airport transit");
+      }
+    }
+
+    if (key === "typeVisa") {
+      if (normalizedValue.includes("type 1") || normalizedValue === "type1") {
+        candidates.push("type 1", "Type 1");
+      }
+      if (normalizedValue.includes("type 2") || normalizedValue === "type2") {
+        candidates.push("type 2", "Type 2");
+      }
+      if (normalizedValue.includes("type 3") || normalizedValue === "type3") {
+        candidates.push("type 3", "Type 3");
+      }
+      if (normalizedValue.includes("type 4") || normalizedValue === "type4") {
+        candidates.push("type 4", "Type 4");
+      }
+      if (normalizedValue.includes("type 5") || normalizedValue === "type5") {
+        candidates.push("type 5", "Type 5");
+      }
+    }
+
+    if (key === "visaFileVariation") {
+      if (normalizedValue.includes("circulation")) {
+        candidates.push("circulation", "circulation");
+      }
+      if (normalizedValue.includes("primo")) {
+        candidates.push("primo_demand", "primo-demande", "primo demande");
+      }
+      if (normalizedValue.includes("renewal") || normalizedValue.includes("renouvellement") || normalizedValue.includes("voyageur frequent")) {
+        candidates.push(
+          "renewal",
+          "renouvellement",
+          "voyageur frequent (renouvellement)",
+          "voyageur frequent renouvellement"
+        );
+      }
+      if (normalizedValue.includes("organisation professionnelle") || normalizedValue.includes("ordre professionnel") || normalizedValue.includes("prof org")) {
+        candidates.push(
+          "prof_org",
+          "membre d'une organisation professionnelle",
+          "membre d un ordre professionnel",
+          "organisation professionnelle"
+        );
+      }
     }
 
     if (/day$/i.test(key)) {
@@ -1479,6 +1548,7 @@ function fillPassportFieldsOnPage(passportData) {
     localCount += assignIfPresent(travelPurposeSelect, "travelPurpose", passportData.travelPurpose, "travelPurpose");
     localCount += assignIfPresent(typeVisaSelect, "typeVisa", passportData.typeVisa, "typeVisa");
     localCount += assignIfPresent(visaFileVariationSelect, "visaFileVariation", passportData.visaFileVariation, "visaFileVariation");
+    scheduleDependentSelectRetries();
 
     if (birthSelects?.length >= 3 && passportData.birthDay && passportData.birthMonth && passportData.birthYear) {
       const dateValues = [passportData.birthDay, passportData.birthMonth, passportData.birthYear];
@@ -1520,6 +1590,30 @@ function fillPassportFieldsOnPage(passportData) {
       localUsed.push(element);
       localKeys.push(filledKey);
       return 1;
+    }
+
+    function scheduleDependentSelectRetries() {
+      const dependentFields = [
+        [travelPurposeSelect, "travelPurpose", passportData.travelPurpose],
+        [typeVisaSelect, "typeVisa", passportData.typeVisa],
+        [visaFileVariationSelect, "visaFileVariation", passportData.visaFileVariation]
+      ].filter(([, , value]) => Boolean(value));
+
+      if (!dependentFields.length) {
+        return;
+      }
+
+      [250, 800, 1600].forEach((delay) => {
+        window.setTimeout(() => {
+          dependentFields.forEach(([element, key, value]) => {
+            if (!element) {
+              return;
+            }
+
+            applyValue(element, key, value);
+          });
+        }, delay);
+      });
     }
   }
 
