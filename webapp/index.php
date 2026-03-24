@@ -302,7 +302,16 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                             </select>
                         </label>
                         <label>Votre projet
-                            <input name="travelPurpose">
+                            <select name="travelPurpose">
+                                <option value="">Selectionner</option>
+                                <option value="tourisme">Tourisme</option>
+                                <option value="affaires">Affaires</option>
+                                <option value="visite_familiale">Visite familiale</option>
+                                <option value="etudes">Etudes</option>
+                                <option value="medical">Medical</option>
+                                <option value="transit">Transit</option>
+                                <option value="installation">Installation</option>
+                            </select>
                         </label>
                         <label>Motif principal du sejour
                             <input name="typeVisa">
