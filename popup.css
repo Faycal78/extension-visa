@@ -23,8 +23,10 @@
 body {
   margin: 0;
   min-width: 420px;
+  max-width: 560px;
   background: var(--bg);
   color: var(--text);
+  overflow-y: auto;
 }
 
 .panel {
@@ -212,6 +214,13 @@ button:disabled {
   font-family: ui-monospace, "SFMono-Regular", monospace;
   font-size: 12px;
   line-height: 1.55;
+}
+
+#fields-result {
+  max-height: none;
+  overflow: visible;
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 .empty {
