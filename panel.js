@@ -1161,7 +1161,7 @@ function buildAutofillPayload(data) {
   };
 }
 
-function fillPassportFieldsOnPage(passportData) {
+async function fillPassportFieldsOnPage(passportData) {
   const normalized = (value) =>
     String(value || "")
       .normalize("NFD")
@@ -1169,6 +1169,18 @@ function fillPassportFieldsOnPage(passportData) {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, " ")
       .trim();
+  const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+  const waitFor = async (getElement, isReady, timeoutMs = 7000, intervalMs = 120) => {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const element = getElement();
+      if (element && isReady(element)) {
+        return element;
+      }
+      await sleep(intervalMs);
+    }
+    return null;
+  };
 
   const getLabelText = (element) => {
     const labels = [];
@@ -1226,7 +1238,7 @@ function fillPassportFieldsOnPage(passportData) {
   let filledCount = 0;
   const filledKeys = [];
 
-  const capagoResult = fillCapagoKnownLayout();
+  const capagoResult = await fillCapagoKnownLayout();
   capagoResult.usedElements.forEach((element) => used.add(element));
   filledCount += capagoResult.filledCount;
   filledKeys.push(...capagoResult.filledKeys);
@@ -1806,7 +1818,7 @@ function fillPassportFieldsOnPage(passportData) {
     return [...new Set(candidates.filter(Boolean))];
   }
 
-  function fillCapagoKnownLayout() {
+  async function fillCapagoKnownLayout() {
     if (!/capago\.eu$/i.test(window.location.hostname)) {
       return { filledCount: 0, filledKeys: [], usedElements: [] };
     }
@@ -1882,36 +1894,69 @@ function fillPassportFieldsOnPage(passportData) {
       passportData.formula,
       "formula"
     );
-    localCount += assignIfPresent(visaStayDurationSelect, "visaStayDuration", passportData.visaStayDuration, "visaStayDuration");
-    localCount += assignIfPresent(travelPurposeSelect, "travelPurpose", passportData.travelPurpose, "travelPurpose");
-    localCount += assignIfPresent(typeVisaSelect, "typeVisa", passportData.typeVisa, "typeVisa");
-    localCount += assignIfPresent(visaVariationSelect, "visaVariation", passportData.visaVariation, "visaVariation");
-    localCount += assignIfPresent(visaChecklistSelect, "visaChecklist", passportData.visaChecklist, "visaChecklist");
-    localCount += assignIfPresent(visaFileVariationSelect, "visaFileVariation", passportData.visaFileVariation, "visaFileVariation");
-    scheduleDependentSelectRetries();
-    scheduleDateSelectRetries();
 
     if (birthSelects?.length >= 3 && passportData.birthDay && passportData.birthMonth && passportData.birthYear) {
-      const dateValues = [passportData.birthDay, passportData.birthMonth, passportData.birthYear];
-      const dateKeys = ["birthDay", "birthMonth", "birthYear"];
-
-      birthSelects.slice(0, 3).forEach((element, index) => {
-        if (assignIfPresent(element, dateKeys[index], dateValues[index], "birthDateGroup")) {
-          localCount += 1;
-        }
-      });
+      localCount += await assignDateGroupAsync(
+        () => pickCapagoBirthSelects(section),
+        ["birthDay", "birthMonth", "birthYear"],
+        [passportData.birthDay, passportData.birthMonth, passportData.birthYear],
+        "birthDateGroup"
+      );
     }
 
     if (departureSelects?.length >= 3 && passportData.departureDay && passportData.departureMonth && passportData.departureYear) {
-      const dateValues = [passportData.departureDay, passportData.departureMonth, passportData.departureYear];
-      const dateKeys = ["departureDay", "departureMonth", "departureYear"];
-
-      departureSelects.slice(0, 3).forEach((element, index) => {
-        if (assignIfPresent(element, dateKeys[index], dateValues[index], "departureDateGroup")) {
-          localCount += 1;
-        }
-      });
+      localCount += await assignDateGroupAsync(
+        () => pickCapagoDepartureSelects(section),
+        ["departureDay", "departureMonth", "departureYear"],
+        [passportData.departureDay, passportData.departureMonth, passportData.departureYear],
+        "departureDateGroup"
+      );
     }
+
+    localCount += await assignCapagoSelectAsync(
+      () => section.querySelector("#visa_stay_duration_traveller_1"),
+      "visaStayDuration",
+      passportData.visaStayDuration,
+      "visaStayDuration"
+    );
+    localCount += await assignCapagoSelectAsync(
+      () => section.querySelector("#travel_purpose_traveller_1"),
+      "travelPurpose",
+      passportData.travelPurpose,
+      "travelPurpose",
+      { requireOptions: true }
+    );
+    localCount += await assignCapagoSelectAsync(
+      () => section.querySelector("#type_visa_traveller_1"),
+      "typeVisa",
+      passportData.typeVisa,
+      "typeVisa",
+      { requireOptions: true }
+    );
+    localCount += await assignCapagoSelectAsync(
+      () => section.querySelector("#precision1_traveller_1"),
+      "visaVariation",
+      passportData.visaVariation,
+      "visaVariation",
+      { requireOptions: true }
+    );
+    localCount += await assignCapagoSelectAsync(
+      () => section.querySelector("#precision2_traveller_1"),
+      "visaChecklist",
+      passportData.visaChecklist,
+      "visaChecklist",
+      { requireOptions: true }
+    );
+    localCount += await assignCapagoSelectAsync(
+      () => section.querySelector("#visa_file_variation_traveller_1"),
+      "visaFileVariation",
+      passportData.visaFileVariation,
+      "visaFileVariation",
+      { requireOptions: true, timeoutMs: 3000 }
+    );
+
+    scheduleDependentSelectRetries();
+    scheduleDateSelectRetries();
 
     return {
       filledCount: localCount,
@@ -1931,6 +1976,64 @@ function fillPassportFieldsOnPage(passportData) {
       localUsed.push(element);
       localKeys.push(filledKey);
       return 1;
+    }
+
+    async function assignCapagoSelectAsync(getElement, key, value, filledKey, options = {}) {
+      if (!value) {
+        return 0;
+      }
+
+      const { requireOptions = false, timeoutMs = 7000 } = options;
+      const element = await waitFor(
+        getElement,
+        (candidate) =>
+          candidate instanceof HTMLSelectElement &&
+          (!requireOptions || candidate.options.length > 1),
+        timeoutMs
+      );
+
+      if (!element) {
+        return 0;
+      }
+
+      if (!applyValue(element, key, value)) {
+        return 0;
+      }
+
+      localUsed.push(element);
+      localKeys.push(filledKey);
+      await sleep(180);
+      return 1;
+    }
+
+    async function assignDateGroupAsync(getGroup, keys, values, filledKey) {
+      const group = await waitFor(
+        getGroup,
+        (elements) =>
+          Array.isArray(elements) &&
+          elements.length >= 3 &&
+          elements.every((element) => element instanceof HTMLSelectElement && element.options.length > 1),
+        7000
+      );
+
+      if (!group) {
+        return 0;
+      }
+
+      let count = 0;
+      group.slice(0, 3).forEach((element, index) => {
+        if (applyValue(element, keys[index], values[index])) {
+          localUsed.push(element);
+          count += 1;
+        }
+      });
+
+      if (count) {
+        localKeys.push(filledKey);
+        return count;
+      }
+
+      return 0;
     }
 
     function scheduleDependentSelectRetries() {
@@ -2331,6 +2434,7 @@ function fillPassportFieldsOnPage(passportData) {
     element.dispatchEvent(new Event("focus", { bubbles: true }));
     element.dispatchEvent(new Event("input", { bubbles: true }));
     element.dispatchEvent(new Event("change", { bubbles: true }));
+    element.dispatchEvent(new Event("selectric-change", { bubbles: true }));
     element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     element.dispatchEvent(new Event("blur", { bubbles: true }));
   }
