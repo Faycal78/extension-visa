@@ -1366,23 +1366,31 @@ function fillPassportFieldsOnPage(passportData) {
     }
 
     if (key === "travelPurpose") {
-      if (normalizedValue.includes("etablissement")) {
-        candidates.push("etablissement_familial_prive", "etablissement familial ou prive");
+      if (normalizedValue.includes("etablissement") || normalizedValue === "establishment") {
+        candidates.push("establishment", "etablissement familial ou prive", "etablissement_familial_prive");
       }
-      if (normalizedValue.includes("medical")) {
-        candidates.push("raisons_medicales", "raisons medicales");
+      if (normalizedValue.includes("medical") || normalizedValue === "medical") {
+        candidates.push("medical", "raisons medicales", "raisons_medicales");
       }
-      if (normalizedValue.includes("tourisme")) {
-        candidates.push("tourisme", "tourisme");
+      if (normalizedValue.includes("tourisme") || normalizedValue === "tourism") {
+        candidates.push("tourism", "tourisme");
       }
-      if (normalizedValue.includes("travailler")) {
-        candidates.push("travailler", "travailler");
+      if (
+        normalizedValue.includes("travailler") ||
+        normalizedValue.includes("business") ||
+        normalizedValue === "business"
+      ) {
+        candidates.push("business", "travailler");
       }
-      if (normalizedValue.includes("visite")) {
-        candidates.push("visite_familiale_privee", "visite familiale ou privee");
+      if (normalizedValue.includes("visite") || normalizedValue === "family") {
+        candidates.push("family", "visite familiale ou privee", "visite_familiale_privee");
       }
-      if (normalizedValue.includes("etudes")) {
-        candidates.push("etudes", "etudes");
+      if (
+        normalizedValue.includes("etudes") ||
+        normalizedValue.includes("etudiant") ||
+        normalizedValue === "study"
+      ) {
+        candidates.push("study", "etudes", "etudiant", "etudes");
       }
       if (normalizedValue.includes("installation familiale") || normalizedValue.includes("majeur")) {
         candidates.push(

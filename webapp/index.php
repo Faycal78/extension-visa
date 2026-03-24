@@ -314,12 +314,12 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                         <label>Votre projet
                             <select name="travelPurpose" id="travel-purpose-select">
                                 <option value="">Selectionner</option>
-                                <option value="etablissement_familial_prive">Etablissement familial ou prive</option>
-                                <option value="raisons_medicales">Raisons medicales</option>
-                                <option value="tourisme">Tourisme</option>
-                                <option value="travailler">Travailler</option>
-                                <option value="visite_familiale_privee">Visite familiale ou privee</option>
-                                <option value="etudes">Etudes</option>
+                                <option value="establishment">Etablissement familial ou prive</option>
+                                <option value="medical">Raisons medicales</option>
+                                <option value="tourism">Tourisme</option>
+                                <option value="business">Travailler</option>
+                                <option value="family">Visite familiale ou privee</option>
+                                <option value="study">Etudes</option>
                             </select>
                         </label>
                         <label>Motif principal du sejour
@@ -357,12 +357,12 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
         let dashboardItems = [];
         const travelPurposeOptionsByVisa = {
             short_stay_visa: [
-                ['etablissement_familial_prive', 'Etablissement familial ou prive'],
-                ['raisons_medicales', 'Raisons medicales'],
-                ['tourisme', 'Tourisme'],
-                ['travailler', 'Travailler'],
-                ['visite_familiale_privee', 'Visite familiale ou privee'],
-                ['etudes', 'Etudes']
+                ['establishment', 'Etablissement familial ou prive'],
+                ['medical', 'Raisons medicales'],
+                ['tourism', 'Tourisme'],
+                ['business', 'Travailler'],
+                ['family', 'Visite familiale ou privee'],
+                ['study', 'Etudes']
             ],
             long_stay_visa: [
                 ['family', 'Installation familiale ou privee (majeur)'],
@@ -579,24 +579,31 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
 
         function displayTravelPurpose(row) {
             const value = extracted(row).travelPurpose || '';
+            const visa = extracted(row).visaStayDuration || '';
             const labels = {
-                etablissement_familial_prive: 'Etablissement familial ou prive',
-                raisons_medicales: 'Raisons medicales',
-                tourisme: 'Tourisme',
-                travailler: 'Travailler',
-                visite_familiale_privee: 'Visite familiale ou privee',
-                etudes: 'Etudes',
-                family: 'Installation familiale ou privee (majeur)',
-                family_minor: 'Installation familiale ou privee (mineur)',
-                placement: 'Stage salarie',
-                work: 'Travailler',
-                return: 'Visa de retour',
-                visitor: 'Visiteur',
-                study: 'Etudes',
-                airport_transit: 'Airport transit'
+                short_stay_visa: {
+                    establishment: 'Etablissement familial ou prive',
+                    medical: 'Raisons medicales',
+                    tourism: 'Tourisme',
+                    business: 'Travailler',
+                    family: 'Visite familiale ou privee',
+                    study: 'Etudes'
+                },
+                long_stay_visa: {
+                    family: 'Installation familiale ou privee (majeur)',
+                    family_minor: 'Installation familiale ou privee (mineur)',
+                    placement: 'Stage salarie',
+                    work: 'Travailler',
+                    return: 'Visa de retour',
+                    visitor: 'Visiteur',
+                    study: 'Etudes'
+                },
+                transit_visa: {
+                    airport_transit: 'Airport transit'
+                }
             };
 
-            return labels[value] || value;
+            return labels[visa]?.[value] || value;
         }
 
         function displayTypeVisa(row) {
