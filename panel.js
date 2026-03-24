@@ -1572,6 +1572,11 @@ function fillPassportFieldsOnPage(passportData) {
     return Array.from(element.options).find((option) => {
       const optionValue = normalized(option.value);
       const optionText = normalized(option.textContent || "");
+      const isPlaceholder = !optionValue || optionText === "-" || optionText === "" || optionText === "- -";
+
+      if (isPlaceholder) {
+        return false;
+      }
 
       return wanted.some((candidate) => optionValue === candidate || optionText === candidate || optionText.includes(candidate));
     });
@@ -1883,6 +1888,7 @@ function fillPassportFieldsOnPage(passportData) {
     localCount += assignIfPresent(visaChecklistSelect, "visaChecklist", passportData.visaChecklist, "visaChecklist");
     localCount += assignIfPresent(visaFileVariationSelect, "visaFileVariation", passportData.visaFileVariation, "visaFileVariation");
     scheduleDependentSelectRetries();
+    scheduleDateSelectRetries();
 
     if (birthSelects?.length >= 3 && passportData.birthDay && passportData.birthMonth && passportData.birthYear) {
       const dateValues = [passportData.birthDay, passportData.birthMonth, passportData.birthYear];
@@ -1927,7 +1933,8 @@ function fillPassportFieldsOnPage(passportData) {
     }
 
     function scheduleDependentSelectRetries() {
-      const dependentFields = [
+      const sequence = [
+        [() => section.querySelector("#visa_stay_duration_traveller_1"), "visaStayDuration", passportData.visaStayDuration],
         [() => section.querySelector("#travel_purpose_traveller_1"), "travelPurpose", passportData.travelPurpose],
         [() => section.querySelector("#type_visa_traveller_1"), "typeVisa", passportData.typeVisa],
         [() => section.querySelector("#precision1_traveller_1"), "visaVariation", passportData.visaVariation],
@@ -1935,18 +1942,59 @@ function fillPassportFieldsOnPage(passportData) {
         [() => section.querySelector("#visa_file_variation_traveller_1"), "visaFileVariation", passportData.visaFileVariation]
       ].filter(([, , value]) => Boolean(value));
 
-      if (!dependentFields.length) {
+      if (!sequence.length) {
         return;
       }
 
-      [250, 800, 1600, 2800, 4200].forEach((delay) => {
+      [250, 800, 1600, 2800, 4200, 6000].forEach((delay) => {
         window.setTimeout(() => {
-          dependentFields.forEach(([getElement, key, value]) => {
+          sequence.forEach(([getElement, key, value]) => {
             const element = getElement();
             if (!element) {
               return;
             }
 
+            if (element instanceof HTMLSelectElement && element.options.length <= 1 && key !== "visaFileVariation") {
+              return;
+            }
+
+            applyValue(element, key, value);
+          });
+        }, delay);
+      });
+    }
+
+    function scheduleDateSelectRetries() {
+      const birthFields = birthSelects?.length >= 3 && passportData.birthDay && passportData.birthMonth && passportData.birthYear
+        ? [
+            [() => pickCapagoBirthSelects(section)?.[0], "birthDay", passportData.birthDay],
+            [() => pickCapagoBirthSelects(section)?.[1], "birthMonth", passportData.birthMonth],
+            [() => pickCapagoBirthSelects(section)?.[2], "birthYear", passportData.birthYear]
+          ]
+        : [];
+      const departureFields = departureSelects?.length >= 3 && passportData.departureDay && passportData.departureMonth && passportData.departureYear
+        ? [
+            [() => pickCapagoDepartureSelects(section)?.[0], "departureDay", passportData.departureDay],
+            [() => pickCapagoDepartureSelects(section)?.[1], "departureMonth", passportData.departureMonth],
+            [() => pickCapagoDepartureSelects(section)?.[2], "departureYear", passportData.departureYear]
+          ]
+        : [];
+      const dateFields = [...birthFields, ...departureFields];
+
+      if (!dateFields.length) {
+        return;
+      }
+
+      [250, 800, 1600, 2800, 4200, 6000].forEach((delay) => {
+        window.setTimeout(() => {
+          dateFields.forEach(([getElement, key, value]) => {
+            const element = getElement();
+            if (!(element instanceof HTMLSelectElement)) {
+              return;
+            }
+            if (element.options.length <= 1) {
+              return;
+            }
             applyValue(element, key, value);
           });
         }, delay);
@@ -2002,14 +2050,16 @@ function fillPassportFieldsOnPage(passportData) {
   }
 
   function pickCapagoBirthSelects(section) {
-    const birthWrapper = section.querySelector('.field-wrapper[data-input="birth"]');
-    if (!birthWrapper) {
-      return null;
-    }
-
-    const daySelect = birthWrapper.querySelector("select.day");
-    const monthSelect = birthWrapper.querySelector("select.month");
-    const yearSelect = birthWrapper.querySelector("select.year");
+    const daySelect =
+      section.querySelector("#day_birth_traveller_1") ||
+      section.querySelector('select[name="day_birth_traveller_1"]') ||
+      section.querySelector('.field-wrapper[data-input="birth"] select.day');
+    const monthSelect =
+      section.querySelector('select[name="month_birth_traveller_1"]') ||
+      section.querySelector('.field-wrapper[data-input="birth"] select.month');
+    const yearSelect =
+      section.querySelector('select[name="year_birth_traveller_1"]') ||
+      section.querySelector('.field-wrapper[data-input="birth"] select.year');
 
     if (!(daySelect && monthSelect && yearSelect)) {
       return null;
@@ -2019,14 +2069,16 @@ function fillPassportFieldsOnPage(passportData) {
   }
 
   function pickCapagoDepartureSelects(section) {
-    const departureWrapper = section.querySelector('.field-wrapper[data-input="departure_date"]');
-    if (!departureWrapper) {
-      return null;
-    }
-
-    const daySelect = departureWrapper.querySelector("select.day");
-    const monthSelect = departureWrapper.querySelector("select.month");
-    const yearSelect = departureWrapper.querySelector("select.year");
+    const daySelect =
+      section.querySelector("#departure_date_traveller_1") ||
+      section.querySelector('select[name="day_departure_date_traveller_1"]') ||
+      section.querySelector('.field-wrapper[data-input="departure_date"] select.day');
+    const monthSelect =
+      section.querySelector('select[name="month_departure_date_traveller_1"]') ||
+      section.querySelector('.field-wrapper[data-input="departure_date"] select.month');
+    const yearSelect =
+      section.querySelector('select[name="year_departure_date_traveller_1"]') ||
+      section.querySelector('.field-wrapper[data-input="departure_date"] select.year');
 
     if (!(daySelect && monthSelect && yearSelect)) {
       return null;
