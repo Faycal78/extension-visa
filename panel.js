@@ -1187,6 +1187,20 @@ function fillPassportFieldsOnPage(passportData) {
         hasAny(text, ["motif principal du sejour", "type visa", "motif principal"])
     },
     {
+      key: "visaVariation",
+      value: passportData.visaVariation,
+      matcher: (text, element) =>
+        element instanceof HTMLSelectElement &&
+        hasAny(text, ["variation de visa", "variation visa", "precision1"])
+    },
+    {
+      key: "visaChecklist",
+      value: passportData.visaChecklist,
+      matcher: (text, element) =>
+        element instanceof HTMLSelectElement &&
+        hasAny(text, ["situation du demandeur", "situation demandeur", "precision2"])
+    },
+    {
       key: "visaFileVariation",
       value: passportData.visaFileVariation,
       matcher: (text, element) =>
@@ -1265,12 +1279,14 @@ function fillPassportFieldsOnPage(passportData) {
 
     if (element instanceof HTMLInputElement && element.type === "date") {
       element.value = normalizeDateValue(value);
+      element.setAttribute("value", element.value);
       dispatchFieldEvents(element);
       return Boolean(element.value);
     }
 
+    setNativeFieldValue(element, String(value));
     element.focus();
-    element.value = String(value);
+    element.setAttribute("value", String(value));
     dispatchFieldEvents(element);
     return true;
   }
@@ -1692,7 +1708,7 @@ function fillPassportFieldsOnPage(passportData) {
         return;
       }
 
-      [250, 800, 1600].forEach((delay) => {
+      [250, 800, 1600, 2800, 4200].forEach((delay) => {
         window.setTimeout(() => {
           dependentFields.forEach(([getElement, key, value]) => {
             const element = getElement();
@@ -2005,6 +2021,21 @@ function fillPassportFieldsOnPage(passportData) {
     element.dispatchEvent(new Event("input", { bubbles: true }));
     element.dispatchEvent(new Event("change", { bubbles: true }));
     element.dispatchEvent(new Event("blur", { bubbles: true }));
+  }
+
+  function setNativeFieldValue(element, value) {
+    const prototype =
+      element instanceof HTMLTextAreaElement
+        ? HTMLTextAreaElement.prototype
+        : HTMLInputElement.prototype;
+    const descriptor = Object.getOwnPropertyDescriptor(prototype, "value");
+
+    if (descriptor?.set) {
+      descriptor.set.call(element, value);
+      return;
+    }
+
+    element.value = value;
   }
 
   function dispatchSelectEvents(element) {
