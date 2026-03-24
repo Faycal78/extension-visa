@@ -1561,6 +1561,7 @@ function fillPassportFieldsOnPage(passportData) {
     option.selected = true;
     element.selectedIndex = Array.from(element.options).indexOf(option);
     element.value = option.value;
+    element.setAttribute("value", option.value);
     syncSelectricUi(element, option);
     dispatchSelectEvents(element);
     return element.value === option.value || element.selectedIndex >= 0;
@@ -2119,6 +2120,19 @@ function fillPassportFieldsOnPage(passportData) {
 
   function syncSelectricUi(element, option) {
     const wrapper = element.closest(".selectric-wrapper");
+    const maybeJQuery = window.jQuery || window.$;
+    if (typeof maybeJQuery === "function") {
+      try {
+        const jqueryElement = maybeJQuery(element);
+        jqueryElement.val(option.value);
+        jqueryElement.trigger("input");
+        jqueryElement.trigger("change");
+        if (typeof jqueryElement.selectric === "function") {
+          jqueryElement.selectric("refresh");
+        }
+      } catch {}
+    }
+
     if (!wrapper) {
       return;
     }
@@ -2136,16 +2150,7 @@ function fillPassportFieldsOnPage(passportData) {
     const activeItem = wrapper.querySelector(`.selectric-items li[data-index="${optionIndex}"]`);
     if (activeItem) {
       activeItem.classList.add("selected");
-    }
-
-    const maybeJQuery = window.jQuery || window.$;
-    if (typeof maybeJQuery === "function") {
-      try {
-        maybeJQuery(element).trigger("change");
-        if (typeof maybeJQuery(element).selectric === "function") {
-          maybeJQuery(element).selectric("refresh");
-        }
-      } catch {}
+      activeItem.setAttribute("aria-selected", "true");
     }
   }
 
