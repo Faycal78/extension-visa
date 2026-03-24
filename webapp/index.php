@@ -323,14 +323,7 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                             </select>
                         </label>
                         <label>Motif principal du sejour
-                            <select name="typeVisa" id="type-visa-select">
-                                <option value="">Selectionner</option>
-                                <option value="Type 1">Type 1</option>
-                                <option value="Type 2">Type 2</option>
-                                <option value="Type 3">Type 3</option>
-                                <option value="Type 4">Type 4</option>
-                                <option value="Type 5">Type 5</option>
-                            </select>
+                            <input name="typeVisa" placeholder="Saisir le motif principal exact">
                         </label>
                         <label>Categorie du demandeur
                             <select name="visaFileVariation">
@@ -361,7 +354,6 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
         const formStatus = document.getElementById('form-status');
         const travelPurposeSelect = manualForm.elements.travelPurpose;
         const visaStayDurationSelect = manualForm.elements.visaStayDuration;
-        const typeVisaSelect = manualForm.elements.typeVisa;
         let dashboardItems = [];
         const travelPurposeOptionsByVisa = {
             short_stay_visa: [
@@ -385,15 +377,6 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                 ['airport_transit', 'Airport transit']
             ]
         };
-        const typeVisaOptions = [
-            ['', 'Selectionner'],
-            ['Type 1', 'Type 1'],
-            ['Type 2', 'Type 2'],
-            ['Type 3', 'Type 3'],
-            ['Type 4', 'Type 4'],
-            ['Type 5', 'Type 5']
-        ];
-
         refreshButton.addEventListener('click', loadDashboard);
         manualForm.addEventListener('submit', submitManualForm);
         visaStayDurationSelect.addEventListener('change', () => {
@@ -401,7 +384,6 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
         });
 
         syncTravelPurposeOptions(visaStayDurationSelect.value || 'short_stay_visa');
-        syncTypeVisaOptions();
 
         loadDashboard();
 
@@ -549,7 +531,6 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
 
             manualForm.reset();
             syncTravelPurposeOptions(visaStayDurationSelect.value || 'short_stay_visa');
-            syncTypeVisaOptions();
             formStatus.textContent = `Enregistre. ID ${result.id}.`;
             await loadDashboard();
         }
@@ -577,7 +558,7 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
             manualForm.elements.departureDate.value = data.departureDate || '';
             manualForm.elements.visaStayDuration.value = data.visaStayDuration || 'short_stay_visa';
             syncTravelPurposeOptions(manualForm.elements.visaStayDuration.value, data.travelPurpose || '');
-            syncTypeVisaOptions(data.typeVisa || '');
+            manualForm.elements.typeVisa.value = data.typeVisa || '';
             manualForm.elements.visaFileVariation.value = data.visaFileVariation || '';
             manualForm.elements.raw_text.value = row.raw_text || '';
             formStatus.textContent = `Fiche ${row.id} chargee dans le formulaire. Modifiez puis enregistrez.`;
@@ -642,17 +623,6 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
 
             if (selected && options.some(([value]) => value === selected)) {
                 travelPurposeSelect.value = selected;
-            }
-        }
-
-        function syncTypeVisaOptions(selectedValue = '') {
-            const selected = selectedValue || typeVisaSelect.value || '';
-            typeVisaSelect.innerHTML = typeVisaOptions
-                .map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`)
-                .join('');
-
-            if (selected && typeVisaOptions.some(([value]) => value === selected)) {
-                typeVisaSelect.value = selected;
             }
         }
 
