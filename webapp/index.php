@@ -323,14 +323,16 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                             </select>
                         </label>
                         <label>Motif principal du sejour
-                            <input name="typeVisa" placeholder="Saisir le motif principal exact">
+                            <select name="typeVisa" id="type-visa-select">
+                                <option value="">Selectionner</option>
+                            </select>
                         </label>
                         <label>Categorie du demandeur
                             <select name="visaFileVariation">
                                 <option value="">Selectionner</option>
                                 <option value="circulation">Circulation</option>
                                 <option value="primo_demand">Primo-demande</option>
-                                <option value="renewal">Voyageur Frequent (renouvellement)</option>
+                                <option value="renewal">Renouvellement</option>
                                 <option value="prof_org">Membre d'une Organisation Professionnelle</option>
                             </select>
                         </label>
@@ -354,6 +356,7 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
         const formStatus = document.getElementById('form-status');
         const travelPurposeSelect = manualForm.elements.travelPurpose;
         const visaStayDurationSelect = manualForm.elements.visaStayDuration;
+        const typeVisaSelect = manualForm.elements.typeVisa;
         let dashboardItems = [];
         const travelPurposeOptionsByVisa = {
             short_stay_visa: [
@@ -374,13 +377,114 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                 ['study', 'Etudes']
             ],
             transit_visa: [
-                ['airport_transit', 'Airport transit']
+                ['transit', 'Transit']
             ]
         };
+        const typeVisaOptionsBySelection = {
+            short_stay_visa: {
+                establishment: [
+                    ['013-BA3B8', 'Ascendant a charge de Francais ou de son conjoint etranger'],
+                    ['013-BC73C', 'Conjoint de francais'],
+                    ['013-9ACB7', 'Conjoint de scientifique / chercheur'],
+                    ['013-179001', 'Enfant majeur a charge de francais'],
+                    ['013-9CF63', 'Enfant mineur de Francais'],
+                    ['013-11725B', 'Famille de ressortissant UE/EEE/Suisse'],
+                    ['013-B9DF8', "Parent d'enfant francais mineur"]
+                ],
+                medical: [
+                    ['013-1176AB', 'Soins medicaux']
+                ],
+                tourism: [
+                    ['013-1C5AE5', 'Tourisme / Visite privee']
+                ],
+                business: [
+                    ['013-145AB4', 'Embauche ou detachement de salarie'],
+                    ['017-D6EC9', "Employe au service d'un etranger ou d'un francais"],
+                    ['013-D37EE', 'Manifestation culturelle, artistique, scientifique, sportive y compris mission ponctuelle'],
+                    ['013-377E4', 'Mannequin'],
+                    ['013-1501C0', 'Marin'],
+                    ['20241025-A210', "Mission officielle diplomate et membre d'une organisation internationale sur passeport ordinaire"],
+                    ['013-3137B', 'Scientifique / Chercheur'],
+                    ['013-F59A2', 'Stage salarie'],
+                    ['013-DAFD0', 'Voyage professionnel']
+                ],
+                family: [
+                    ['013-6059B', 'En vue de mariage avec un ressortissant francais'],
+                    ['013-8B572', "Membres d'une congregation religieuse relevant du Formulaire Unique"],
+                    ['013-E0806', 'Visite familiale'],
+                    ['013-113581', 'Visite familiale / enfant ou parent etranger de Francais ou de son conjoint'],
+                    ['013-B3FFD', 'Visite privee / conjoint de francais'],
+                    ['013-1FDF5', 'Visite privee / famille de UE/EEE/Suisse']
+                ],
+                study: [
+                    ['013-124AEA', 'Etudiant / Etudiant-Concours'],
+                    ['013-36697', 'Stage etudiant']
+                ]
+            },
+            long_stay_visa: {
+                family_minor: [
+                    ['017-335A8', 'Adoption de mineur'],
+                    ['013-16172C', "Enfant mineur (- de 18 ans) de refugie, de beneficiaire de la protection subsidiaire ou d'apatride"],
+                    ['017-1F6082', "Enfant mineur de beneficiaire de l'accord franco-russe"],
+                    ['017-20D9A', 'Enfant mineur de scientifique / chercheur'],
+                    ['024-131BCA', 'Famille accompagnante beneficiaire passeport talent (Mineur)'],
+                    ['017-568F2', "Frere mineur, soeur mineure de refugie, de beneficiaire de la protection subsidiaire ou d'apatride"],
+                    ['013-19BD3', 'Regroupement familial (Enfant mineur, dont enfant mineur de conjoint etranger de Francais)']
+                ],
+                family: [
+                    ['013-128EF4', 'Ascendant non a charge'],
+                    ['017-E7A42', "Conjoint de beneficiaire de l'accord franco-russe"],
+                    ['013-9AE03', "Conjoint ou concubin de refugie, de beneficiaire de la protection subsidiaire ou d'apatride"],
+                    ['013-56469', "Enfant majeur (19 ans au plus) de refugie, de beneficiaire de la protection subsidiaire ou d'apatride"],
+                    ['013-FE9E', 'Enfant majeur a charge de scientifique / chercheur'],
+                    ['024-1C8D5A', 'Famille accompagnante beneficiaire passeport talent (Majeur)'],
+                    ['013-59959', "Pere/Mere de refugie, de beneficiaire de la protection subsidiaire ou d'apatride"],
+                    ['013-165103', 'Regroupement familial'],
+                    ['013-CA581', "Titulaire d'une rente d'accident du travail ou de maladie professionnelle, versee par un Organisme francais"]
+                ],
+                visitor: [
+                    ['013-B8022', "Ayant-droit titulaire d'une rente d'accident du travail ou de maladie professionnelle, versee par un Organisme francais"],
+                    ['013-1757AD', 'Visiteur majeur'],
+                    ['013-EC4BA', 'Visiteur mineur']
+                ],
+                work: [
+                    ['013-5DFA3', 'Embauche ou detachement de salarie'],
+                    ['013-32DE2', 'Entrepreneur (artisan, industriel ou commercant)'],
+                    ['013-132BBA', "Exercice d'une activite artistique / culturelle"],
+                    ['013-FC764', "Exercice d'une activite scientifique / recherche"],
+                    ['013-27918', 'Profession liberale ou independante']
+                ],
+                study: [
+                    ['017-3755C', 'Etudiant'],
+                    ['013-98892', 'Mineur scolarise (primaire, secondaire ou superieur), sejour individuel'],
+                    ['017-1377D6', 'Mineur scolarise (primaire, secondaire ou superieur), sejour organise par un organisme specialise'],
+                    ['013-143096', 'Stage etudiant']
+                ],
+                placement: [
+                    ['013-199E9F', 'Stage professionnel salarie']
+                ],
+                return: [
+                    ['013-E58E6', 'Visa de retour']
+                ]
+            },
+            transit_visa: {
+                transit: [
+                    ['180713-EU_Family_Visa', 'Transit Aeroportuaire']
+                ]
+            }
+        };
+        const typeVisaLabelMap = Object.fromEntries(
+            Object.values(typeVisaOptionsBySelection)
+                .flatMap((group) => Object.values(group))
+                .flat()
+        );
         refreshButton.addEventListener('click', loadDashboard);
         manualForm.addEventListener('submit', submitManualForm);
         visaStayDurationSelect.addEventListener('change', () => {
             syncTravelPurposeOptions(visaStayDurationSelect.value);
+        });
+        travelPurposeSelect.addEventListener('change', () => {
+            syncTypeVisaOptions(visaStayDurationSelect.value, travelPurposeSelect.value);
         });
 
         syncTravelPurposeOptions(visaStayDurationSelect.value || 'short_stay_visa');
@@ -558,7 +662,7 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
             manualForm.elements.departureDate.value = data.departureDate || '';
             manualForm.elements.visaStayDuration.value = data.visaStayDuration || 'short_stay_visa';
             syncTravelPurposeOptions(manualForm.elements.visaStayDuration.value, data.travelPurpose || '');
-            manualForm.elements.typeVisa.value = data.typeVisa || '';
+            syncTypeVisaOptions(manualForm.elements.visaStayDuration.value, data.travelPurpose || '', data.typeVisa || '');
             manualForm.elements.visaFileVariation.value = data.visaFileVariation || '';
             manualForm.elements.raw_text.value = row.raw_text || '';
             formStatus.textContent = `Fiche ${row.id} chargee dans le formulaire. Modifiez puis enregistrez.`;
@@ -607,7 +711,8 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
         }
 
         function displayTypeVisa(row) {
-            return extracted(row).typeVisa || '';
+            const value = extracted(row).typeVisa || '';
+            return typeVisaLabelMap[value] || value;
         }
 
         function displayCategory(row) {
@@ -615,7 +720,7 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
             const labels = {
                 circulation: 'Circulation',
                 primo_demand: 'Primo-demande',
-                renewal: 'Voyageur Frequent (renouvellement)',
+                renewal: 'Renouvellement',
                 prof_org: "Membre d'une Organisation Professionnelle"
             };
 
@@ -632,6 +737,21 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
 
             if (selected && options.some(([value]) => value === selected)) {
                 travelPurposeSelect.value = selected;
+            }
+
+            syncTypeVisaOptions(visaStayDuration, travelPurposeSelect.value || selected || '');
+        }
+
+        function syncTypeVisaOptions(visaStayDuration, travelPurpose, selectedValue = '') {
+            const selected = selectedValue || typeVisaSelect.value || '';
+            const options = typeVisaOptionsBySelection[visaStayDuration]?.[travelPurpose] || [];
+            typeVisaSelect.innerHTML = [
+                '<option value="">Selectionner</option>',
+                ...options.map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`)
+            ].join('');
+
+            if (selected && options.some(([value]) => value === selected)) {
+                typeVisaSelect.value = selected;
             }
         }
 

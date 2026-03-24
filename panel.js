@@ -1424,25 +1424,82 @@ function fillPassportFieldsOnPage(passportData) {
         candidates.push("study", "etudes", "etudiant");
       }
       if (normalizedValue.includes("airport transit")) {
-        candidates.push("airport_transit", "airport transit");
+        candidates.push("transit", "airport transit", "airport_transit", "transit");
       }
     }
 
     if (key === "typeVisa") {
-      if (normalizedValue.includes("type 1") || normalizedValue === "type1") {
-        candidates.push("type 1", "Type 1");
-      }
-      if (normalizedValue.includes("type 2") || normalizedValue === "type2") {
-        candidates.push("type 2", "Type 2");
-      }
-      if (normalizedValue.includes("type 3") || normalizedValue === "type3") {
-        candidates.push("type 3", "Type 3");
-      }
-      if (normalizedValue.includes("type 4") || normalizedValue === "type4") {
-        candidates.push("type 4", "Type 4");
-      }
-      if (normalizedValue.includes("type 5") || normalizedValue === "type5") {
-        candidates.push("type 5", "Type 5");
+      const knownTypeVisas = [
+        ["013-BA3B8", "Ascendant a charge de Francais ou de son conjoint etranger"],
+        ["013-BC73C", "Conjoint de francais"],
+        ["013-9ACB7", "Conjoint de scientifique / chercheur"],
+        ["013-179001", "Enfant majeur a charge de francais"],
+        ["013-9CF63", "Enfant mineur de Francais"],
+        ["013-11725B", "Famille de ressortissant UE/EEE/Suisse"],
+        ["013-B9DF8", "Parent d'enfant francais mineur"],
+        ["013-1176AB", "Soins medicaux"],
+        ["013-1C5AE5", "Tourisme / Visite privee"],
+        ["013-145AB4", "Embauche ou detachement de salarie"],
+        ["017-D6EC9", "Employe au service d'un etranger ou d'un francais"],
+        ["013-D37EE", "Manifestation culturelle, artistique, scientifique, sportive y compris mission ponctuelle"],
+        ["013-377E4", "Mannequin"],
+        ["013-1501C0", "Marin"],
+        ["20241025-A210", "Mission officielle diplomate et membre d'une organisation internationale sur passeport ordinaire"],
+        ["013-3137B", "Scientifique / Chercheur"],
+        ["013-F59A2", "Stage salarie"],
+        ["013-DAFD0", "Voyage professionnel"],
+        ["013-6059B", "En vue de mariage avec un ressortissant francais"],
+        ["013-8B572", "Membres d'une congregation religieuse relevant du Formulaire Unique"],
+        ["013-E0806", "Visite familiale"],
+        ["013-113581", "Visite familiale / enfant ou parent etranger de Francais ou de son conjoint"],
+        ["013-B3FFD", "Visite privee / conjoint de francais"],
+        ["013-1FDF5", "Visite privee / famille de UE/EEE/Suisse"],
+        ["013-124AEA", "Etudiant / Etudiant-Concours"],
+        ["013-36697", "Stage etudiant"],
+        ["017-335A8", "Adoption de mineur"],
+        ["013-16172C", "Enfant mineur (- de 18 ans) de refugie, de beneficiaire de la protection subsidiaire ou d'apatride"],
+        ["017-1F6082", "Enfant mineur de beneficiaire de l'accord franco-russe"],
+        ["017-20D9A", "Enfant mineur de scientifique / chercheur"],
+        ["024-131BCA", "Famille accompagnante beneficiaire passeport talent (Mineur)"],
+        ["017-568F2", "Frere mineur, soeur mineure de refugie, de beneficiaire de la protection subsidiaire ou d'apatride"],
+        ["013-19BD3", "Regroupement familial (Enfant mineur, dont enfant mineur de conjoint etranger de Francais)"],
+        ["013-128EF4", "Ascendant non a charge"],
+        ["017-E7A42", "Conjoint de beneficiaire de l'accord franco-russe"],
+        ["013-9AE03", "Conjoint ou concubin de refugie, de beneficiaire de la protection subsidiaire ou d'apatride"],
+        ["013-56469", "Enfant majeur (19 ans au plus) de refugie, de beneficiaire de la protection subsidiaire ou d'apatride"],
+        ["013-FE9E", "Enfant majeur a charge de scientifique / chercheur"],
+        ["024-1C8D5A", "Famille accompagnante beneficiaire passeport talent (Majeur)"],
+        ["013-59959", "Pere/Mere de refugie, de beneficiaire de la protection subsidiaire ou d'apatride"],
+        ["013-165103", "Regroupement familial"],
+        ["013-CA581", "Titulaire d'une rente d'accident du travail ou de maladie professionnelle, versee par un Organisme francais"],
+        ["013-B8022", "Ayant-droit titulaire d'une rente d'accident du travail ou de maladie professionnelle, versee par un Organisme francais"],
+        ["013-1757AD", "Visiteur majeur"],
+        ["013-EC4BA", "Visiteur mineur"],
+        ["013-5DFA3", "Embauche ou detachement de salarie"],
+        ["013-32DE2", "Entrepreneur (artisan, industriel ou commercant)"],
+        ["013-132BBA", "Exercice d'une activite artistique / culturelle"],
+        ["013-FC764", "Exercice d'une activite scientifique / recherche"],
+        ["013-27918", "Profession liberale ou independante"],
+        ["017-3755C", "Etudiant"],
+        ["013-98892", "Mineur scolarise (primaire, secondaire ou superieur), sejour individuel"],
+        ["017-1377D6", "Mineur scolarise (primaire, secondaire ou superieur), sejour organise par un organisme specialise"],
+        ["013-143096", "Stage etudiant"],
+        ["013-199E9F", "Stage professionnel salarie"],
+        ["013-E58E6", "Visa de retour"],
+        ["180713-EU_Family_Visa", "Transit Aeroportuaire"]
+      ];
+
+      for (const [id, label] of knownTypeVisas) {
+        const normalizedId = normalizeText(id);
+        const normalizedLabel = normalizeText(label);
+        if (
+          normalizedValue === normalizedId ||
+          normalizedValue === normalizedLabel ||
+          normalizedLabel.includes(normalizedValue) ||
+          normalizedValue.includes(normalizedLabel)
+        ) {
+          candidates.push(id, label);
+        }
       }
     }
 
