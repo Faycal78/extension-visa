@@ -50,6 +50,11 @@ languageSelect.addEventListener("change", handleLanguageChange);
 backendUrlInput.addEventListener("change", persistBackendUrl);
 backendUrlInput.addEventListener("change", loadDashboardRecords);
 loadRecordButton.addEventListener("click", loadSelectedDashboardRecord);
+dashboardRecordsSelect.addEventListener("change", () => {
+  if (dashboardRecordsSelect.value) {
+    loadSelectedDashboardRecord();
+  }
+});
 
 async function initializePopup() {
   resetResult();
@@ -547,6 +552,10 @@ async function loadDashboardRecords() {
     dashboardRecords = Array.isArray(result.items) ? result.items : [];
     renderDashboardRecords();
     setBackendStatus(`Dashboard connecte. ${dashboardRecords.length} fiche(s) chargee(s).`);
+    if (dashboardRecords.length) {
+      dashboardRecordsSelect.value = String(dashboardRecords[0].id);
+      loadSelectedDashboardRecord();
+    }
   } catch (error) {
     dashboardRecords = [];
     renderDashboardRecords();
@@ -571,7 +580,7 @@ function renderDashboardRecords() {
   dashboardRecords.forEach((record) => {
     const option = document.createElement("option");
     option.value = String(record.id);
-    option.textContent = `${record.full_name || "Sans nom"} | ${record.passport_number || "Sans passeport"} | ${record.created_at || ""}`;
+    option.textContent = `#${record.id} | ${record.full_name || "Sans nom"} | ${record.passport_number || "Sans passeport"} | ${record.created_at || ""}`;
     dashboardRecordsSelect.appendChild(option);
   });
 }
