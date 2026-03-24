@@ -78,9 +78,6 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
         .panel-title { margin: 0 0 6px; font-size: 18px; font-weight: 800; }
         .panel-note { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
         .toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 14px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { text-align: left; padding: 12px 10px; border-top: 1px solid var(--line); vertical-align: top; }
-        th { border-top: 0; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
         .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
         .badge { display: inline-block; border-radius: 999px; background: var(--accent-soft); color: var(--accent); padding: 4px 10px; font-size: 12px; font-weight: 800; }
         form { display: grid; gap: 12px; }
@@ -97,6 +94,27 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
         .story h3 { margin-bottom: 8px; }
         .story p, .list p { color: var(--muted); line-height: 1.65; }
         .list { margin-top: 16px; display: grid; gap: 12px; }
+        .records-list { display: grid; gap: 14px; }
+        .record-card {
+            background: var(--panel-strong);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 16px;
+        }
+        .record-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+        .record-id { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; font-weight: 800; }
+        .record-name { margin: 2px 0 4px; font-size: 20px; font-weight: 800; }
+        .record-meta { color: var(--muted); font-size: 13px; }
+        .record-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+        .record-item {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 10px 12px;
+            background: rgba(255,255,255,.72);
+        }
+        .record-label { margin: 0 0 6px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; font-weight: 800; }
+        .record-value { margin: 0; font-size: 14px; line-height: 1.45; word-break: break-word; }
+        .record-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
         .list-item { display: grid; grid-template-columns: 38px 1fr; gap: 12px; align-items: start; }
         .list-badge {
             width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center;
@@ -106,6 +124,11 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
             .hero, .stats, .layout, .form-grid, .story { grid-template-columns: 1fr; }
             .hero h1 { font-size: 40px; }
             .nav { flex-direction: column; align-items: flex-start; }
+            .record-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 640px) {
+            .record-top, .record-actions { flex-direction: column; align-items: flex-start; }
+            .record-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -219,26 +242,9 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                     </div>
                     <button type="button" class="secondary" id="refresh-button">Rafraichir</button>
                 </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Nom</th>
-                            <th>Passeport</th>
-                            <th>Nationalite</th>
-                            <th>Coordonnees</th>
-                            <th>Visa</th>
-                            <th>Projet</th>
-                            <th>Categorie</th>
-                            <th>Statut</th>
-                            <th>Date</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="submissions-body">
-                        <tr><td colspan="11" class="muted">Chargement...</td></tr>
-                    </tbody>
-                </table>
+                <div id="submissions-body" class="records-list">
+                    <div class="muted">Chargement...</div>
+                </div>
             </article>
 
             <article class="card">
@@ -367,24 +373,76 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
             const rows = submissionsRes.items || [];
             dashboardItems = rows;
             if (!rows.length) {
-                submissionsBody.innerHTML = '<tr><td colspan="11" class="muted">Aucune soumission pour le moment.</td></tr>';
+                submissionsBody.innerHTML = '<div class="muted">Aucune soumission pour le moment.</div>';
                 return;
             }
 
             submissionsBody.innerHTML = rows.map((row) => `
-                <tr>
-                    <td>${escapeHtml(row.id)}</td>
-                    <td><strong>${escapeHtml(row.full_name || '')}</strong><div class="mono">${escapeHtml(row.source_label || row.source_url || '')}</div></td>
-                    <td class="mono">${escapeHtml(row.passport_number || '')}</td>
-                    <td>${escapeHtml(row.nationality || '')}<div class="mono">${escapeHtml(row.nb_travellers || '1')} demandeur(s) · ${escapeHtml(row.formula || 'standard')}</div></td>
-                    <td><div>${escapeHtml(row.mobile_phone || '')}</div><div class="mono">${escapeHtml(row.email || '')}</div></td>
-                    <td><div>${escapeHtml(displayVisaStay(row))}</div><div class="mono">${escapeHtml(displayDate(row.birth_date || extracted(row).birthDate || ''))}</div></td>
-                    <td>${escapeHtml(displayTravelPurpose(row))}<div class="mono">${escapeHtml(displayDate(extracted(row).departureDate || ''))}</div></td>
-                    <td>${escapeHtml(displayCategory(row))}<div class="mono">${escapeHtml(extracted(row).typeVisa || '')}</div></td>
-                    <td><span class="badge">${escapeHtml(row.status || 'received')}</span></td>
-                    <td>${escapeHtml(row.created_at || '')}</td>
-                    <td><button type="button" class="secondary edit-row-button" data-id="${escapeHtml(row.id)}">Modifier</button></td>
-                </tr>
+                <article class="record-card">
+                    <div class="record-top">
+                        <div>
+                            <p class="record-id">Fiche #${escapeHtml(row.id)}</p>
+                            <p class="record-name">${escapeHtml(row.full_name || 'Sans nom')}</p>
+                            <p class="record-meta">${escapeHtml(row.source_label || row.source_url || '')}</p>
+                        </div>
+                        <div>
+                            <span class="badge">${escapeHtml(row.status || 'received')}</span>
+                        </div>
+                    </div>
+                    <div class="record-grid">
+                        <div class="record-item">
+                            <p class="record-label">Passeport</p>
+                            <p class="record-value mono">${escapeHtml(row.passport_number || '')}</p>
+                        </div>
+                        <div class="record-item">
+                            <p class="record-label">Nationalite</p>
+                            <p class="record-value">${escapeHtml(row.nationality || '')}</p>
+                        </div>
+                        <div class="record-item">
+                            <p class="record-label">Telephone</p>
+                            <p class="record-value">${escapeHtml(row.mobile_phone || '')}</p>
+                        </div>
+                        <div class="record-item">
+                            <p class="record-label">Email</p>
+                            <p class="record-value mono">${escapeHtml(row.email || '')}</p>
+                        </div>
+                        <div class="record-item">
+                            <p class="record-label">Naissance</p>
+                            <p class="record-value">${escapeHtml(displayDate(row.birth_date || extracted(row).birthDate || ''))}</p>
+                        </div>
+                        <div class="record-item">
+                            <p class="record-label">Depart</p>
+                            <p class="record-value">${escapeHtml(displayDate(extracted(row).departureDate || ''))}</p>
+                        </div>
+                        <div class="record-item">
+                            <p class="record-label">Type de visa</p>
+                            <p class="record-value">${escapeHtml(displayVisaStay(row))}</p>
+                        </div>
+                        <div class="record-item">
+                            <p class="record-label">Projet</p>
+                            <p class="record-value">${escapeHtml(displayTravelPurpose(row))}</p>
+                        </div>
+                        <div class="record-item">
+                            <p class="record-label">Categorie</p>
+                            <p class="record-value">${escapeHtml(displayCategory(row))}</p>
+                        </div>
+                        <div class="record-item">
+                            <p class="record-label">Motif principal</p>
+                            <p class="record-value">${escapeHtml(extracted(row).typeVisa || '')}</p>
+                        </div>
+                        <div class="record-item">
+                            <p class="record-label">Demandeurs / Formule</p>
+                            <p class="record-value">${escapeHtml(row.nb_travellers || '1')} · ${escapeHtml(row.formula || 'standard')}</p>
+                        </div>
+                        <div class="record-item">
+                            <p class="record-label">Cree le</p>
+                            <p class="record-value">${escapeHtml(row.created_at || '')}</p>
+                        </div>
+                    </div>
+                    <div class="record-actions">
+                        <button type="button" class="secondary edit-row-button" data-id="${escapeHtml(row.id)}">Modifier</button>
+                    </div>
+                </article>
             `).join('');
 
             document.querySelectorAll('.edit-row-button').forEach((button) => {
