@@ -327,6 +327,16 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                                 <option value="">Selectionner</option>
                             </select>
                         </label>
+                        <label>Variation de visa
+                            <select name="visaVariation" id="visa-variation-select">
+                                <option value="">Selectionner</option>
+                            </select>
+                        </label>
+                        <label>Situation du demandeur
+                            <select name="visaChecklist" id="visa-checklist-select">
+                                <option value="">Selectionner</option>
+                            </select>
+                        </label>
                         <label>Categorie du demandeur
                             <select name="visaFileVariation">
                                 <option value="">Selectionner</option>
@@ -357,6 +367,8 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
         const travelPurposeSelect = manualForm.elements.travelPurpose;
         const visaStayDurationSelect = manualForm.elements.visaStayDuration;
         const typeVisaSelect = manualForm.elements.typeVisa;
+        const visaVariationSelect = manualForm.elements.visaVariation;
+        const visaChecklistSelect = manualForm.elements.visaChecklist;
         let dashboardItems = [];
         const travelPurposeOptionsByVisa = {
             short_stay_visa: [
@@ -478,6 +490,19 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                 .flatMap((group) => Object.values(group))
                 .flat()
         );
+        const visaTypeVariationMap = {"017-335A8":{"label":"Adoption de mineur","variations":[{"id":"1","label":"Adoption de mineur","checklists":[{"id":"63","label":"Adoption de mineur"}]}]},"013-128EF4":{"label":"Ascendant non \\u00e0 charge","variations":[{"id":"1","label":"Ascendant non \\u00e0 charge","checklists":[{"id":"70","label":"Ascendant non \\u00e0 charge"}]}]},"013-BA3B8":{"label":"Ascendant \\u00e0 charge de Fran\\u00e7ais ou de son conjoint \\u00e9tranger","variations":[{"id":"1","label":"Schengen  ( + de 12 ans)","checklists":[{"id":"20","label":"Ascendant \\u00e0 charge de Fran\\u00e7ais ou de son conjoint \\u00e9tranger"}]}]},"013-B8022":{"label":"Ayant-droit titulaire d'une rente d'accident du travail ou de maladie professionnelle, vers\\u00e9e par un Organisme fran\\u00e7ais","variations":[{"id":"1","label":"Ayant-droit titulaire d'une rente d'accident du travail ou de maladie professionnelle, vers\\u00e9e par un Organisme fran\\u00e7ais","checklists":[{"id":"52","label":"Ayant-droit titulaire d'une rente d'accident du travail ou de maladie professionnelle, vers\\u00e9e par un Organisme fran\\u00e7ais"}]}]},"017-E7A42":{"label":"Conjoint de b\\u00e9n\\u00e9ficiaire de l'accord franco-russe","variations":[{"id":"1","label":"Conjoint de b\\u00e9n\\u00e9ficiaire de l'accord franco-russe","checklists":[{"id":"79","label":"Conjoint de b\\u00e9n\\u00e9ficiaire de l'accord franco-russe"}]}]},"013-BC73C":{"label":"Conjoint de fran\\u00e7ais","variations":[{"id":"1","label":"Conjoint de fran\\u00e7ais","checklists":[{"id":"19","label":"Conjoint de fran\\u00e7ais"}]}]},"013-9ACB7":{"label":"Conjoint de scientifique / chercheur","variations":[{"id":"1","label":"Schengen  ( + de 12 ans)","checklists":[{"id":"22","label":"Conjoint de scientifique / chercheur"}]}]},"013-9AE03":{"label":"Conjoint ou concubin de r\\u00e9fugi\\u00e9, de b\\u00e9n\\u00e9ficiaire de la protection subsidiaire ou d'apatride","variations":[{"id":"1","label":"Conjoint ou concubin de r\\u00e9fugi\\u00e9, de b\\u00e9n\\u00e9ficiaire de la protection subsidiaire ou d'apatride","checklists":[{"id":"69","label":"Conjoint ou concubin de r\\u00e9fugi\\u00e9, de b\\u00e9n\\u00e9ficiaire de la protection subsidiaire ou d'apatride"}]}]},"013-145AB4":{"label":"Embauche ou d\\u00e9tachement de salari\\u00e9","variations":[{"id":"1","label":"Schengen ( + de 12 ans)","checklists":[{"id":"14","label":"Embauche ou d\\u00e9tachement de salari\\u00e9"}]}]},"013-5DFA3":{"label":"Embauche ou d\\u00e9tachement de salari\\u00e9","variations":[{"id":"1","label":"Embauche ou d\\u00e9tachement de salari\\u00e9","checklists":[{"id":"40","label":"Embauche ou d\\u00e9tachement de salari\\u00e9 - OFII"}]}]},"017-D6EC9":{"label":"Employ\\u00e9 au service d'un \\u00e9tranger ou d'un fran\\u00e7ais","variations":[{"id":"1","label":"Schengen ( + de 12 ans)","checklists":[{"id":"13","label":"Employ\\u00e9 au service d'un \\u00e9tranger ou d'un fran\\u00e7ais"}]}]},"013-6059B":{"label":"En vue de mariage avec un ressortissant fran\\u00e7ais","variations":[{"id":"1","label":"Schengen ( + de 12 ans)","checklists":[{"id":"27","label":"En vue de mariage avec un ressortissant fran\\u00e7ais"}]}]},"013-56469":{"label":"Enfant majeur (19 ans au plus) de r\\u00e9fugi\\u00e9, de b\\u00e9n\\u00e9ficiaire de la protection subsidiaire ou d'apatride","variations":[{"id":"1","label":"Enfant majeur (19 ans au plus) de r\\u00e9fugi\\u00e9, de b\\u00e9n\\u00e9ficiaire de la protection subsidiaire ou d'apatride","checklists":[{"id":"68","label":"Enfant majeur (19 ans au plus) de r\\u00e9fugi\\u00e9, de b\\u00e9n\\u00e9ficiaire de la protection subsidiaire ou d'apatride"}]}]},"013-179001":{"label":"Enfant majeur \\u00e0 charge de fran\\u00e7ais","variations":[{"id":"1","label":"Schengen  ( + de 12 ans)","checklists":[{"id":"21","label":"Enfant majeur \\u00e0 charge de fran\\u00e7ais"}]}]},"013-FE9E":{"label":"Enfant majeur \\u00e0 charge de scientifique / chercheur","variations":[{"id":"1","label":"Enfant majeur \\u00e0 charge de scientifique / chercheur","checklists":[{"id":"67","label":"Enfant majeur \\u00e0 charge de scientifique / chercheur"}]}]},"013-16172C":{"label":"Enfant mineur (- de 18 ans) de r\\u00e9fugi\\u00e9, de b\\u00e9n\\u00e9ficiaire de la protection subsidiaire ou d'apatride","variations":[{"id":"1","label":"Enfant mineur (- de 18 ans) de r\\u00e9fugi\\u00e9, de b\\u00e9n\\u00e9ficiaire de la protection subsidiaire ou d'apatride","checklists":[{"id":"62","label":"Enfant mineur (- de 18 ans) de r\\u00e9fugi\\u00e9, de b\\u00e9n\\u00e9ficiaire de la protection subsidiaire ou d'apatride"}]}]},"013-9CF63":{"label":"Enfant mineur de Fran\\u00e7ais","variations":[{"id":"1","label":"Schengen ( + de 12 ans)","checklists":[{"id":"23","label":"Enfant mineur de Fran\\u00e7ais"}]},{"id":"2","label":"Schengen (6 - 12 ans)","checklists":[{"id":"23","label":"Enfant mineur de Fran\\u00e7ais"}]},{"id":"3","label":"Schengen (Moins de 6 ans)","checklists":[{"id":"23","label":"Enfant mineur de Fran\\u00e7ais"}]}]},"017-1F6082":{"label":"Enfant mineur de b\\u00e9n\\u00e9ficiaire de l'accord franco-russe","variations":[{"id":"1","label":"Enfant mineur de b\\u00e9n\\u00e9ficiaire de l'accord franco-russe","checklists":[{"id":"80","label":"Enfant mineur de b\\u00e9n\\u00e9ficiaire de l'accord franco-russe"}]}]},"017-20D9A":{"label":"Enfant mineur de scientifique / chercheur","variations":[{"id":"1","label":"Enfant mineur de scientifique / chercheur","checklists":[{"id":"81","label":"Enfant mineur de scientifique / chercheur"}]}]},"013-32DE2":{"label":"Entrepreneur (artisan, industriel ou commer\\u00e7ant)","variations":[{"id":"1","label":"Entrepreneur (artisan, industriel ou commer\\u00e7ant)","checklists":[{"id":"42","label":"Entrepreneur (artisan, industriel ou commer\\u00e7ant) - En cas d'insertion dans une activit\\u00e9 existante"},{"id":"41","label":"Entrepreneur (artisan, industriel ou commer\\u00e7ant) - En cas de cr\\u00e9ation d'activit\\u00e9"}]}]},"017-3755C":{"label":"Etudiant","variations":[{"id":"22","label":"\\u00c9tudiant","checklists":[{"id":"92","label":"\\u00c9tudiant"}]}]},"013-124AEA":{"label":"Etudiant / Etudiant-Concours","variations":[{"id":"1","label":"Schengen ( + de 12 ans)","checklists":[{"id":"38","label":"Etudiant / Etudiant-Concours"}]}]},"013-132BBA":{"label":"Exercice d'une activit\\u00e9 artistique / culturelle","variations":[{"id":"1","label":"Exercice d'une activit\\u00e9 artistique / culturelle","checklists":[{"id":"43","label":"Exercice d'une activit\\u00e9 artistique / culturelle"}]}]},"013-FC764":{"label":"Exercice d'une activit\\u00e9 scientifique / recherche","variations":[{"id":"1","label":"Exercice d'une activit\\u00e9 scientifique / recherche","checklists":[{"id":"44","label":"Exercice d'une activit\\u00e9 scientifique / recherche"}]}]},"024-1C8D5A":{"label":"Famille accompagnante b\\u00e9n\\u00e9ficiaire passeport talent (Majeur)","variations":[{"id":"1","label":"Famille accompagnante b\\u00e9n\\u00e9ficiaire passeport talent (Majeur)","checklists":[{"id":"89","label":"Famille accompagnante b\\u00e9n\\u00e9ficiaire passeport talent (Majeur)"}]}]},"024-131BCA":{"label":"Famille accompagnante b\\u00e9n\\u00e9ficiaire passeport talent (Mineur)","variations":[{"id":"1","label":"Famille accompagnante b\\u00e9n\\u00e9ficiaire passeport talent (Mineur)","checklists":[{"id":"90","label":"Famille accompagnante b\\u00e9n\\u00e9ficiaire passeport talent (Mineur)"}]}]},"013-11725B":{"label":"Famille de ressortissant UE/EEE/Suisse","variations":[{"id":"1","label":"Famille de ressortissant UE/EEE/Suisse","checklists":[{"id":"24","label":"Famille de ressortissant UE/EEE/Suisse"}]}]},"017-568F2":{"label":"Fr\\u00e8re mineur, s\\u0153ur mineure de r\\u00e9fugi\\u00e9, de b\\u00e9n\\u00e9ficiaire de la protection subsidiaire ou d'apatride","variations":[{"id":"1","label":"Fr\\u00e8re mineur, s\\u0153ur mineure de r\\u00e9fugi\\u00e9, de b\\u00e9n\\u00e9ficiaire de la protection subsidiaire ou d'apatride","checklists":[{"id":"82","label":"Fr\\u00e8re mineur, s\\u0153ur mineure de r\\u00e9fugi\\u00e9, de b\\u00e9n\\u00e9ficiaire de la protection subsidiaire ou d'apatride"}]}]},"013-D37EE":{"label":"Manifestation culturelle, artistique, scientifique, sportive y compris mission ponctuelle","variations":[{"id":"7","label":"CTOM","checklists":[{"id":"11","label":"Manifestation culturelle, artistique, scientifique, sportive y compris mission ponctuelle"},{"id":"88","label":"Manifestation culturelle, artistique, scientifique, sportive y compris mission ponctuelle - Mineurs"}]},{"id":"5","label":"DOM (+ de 12 ans)","checklists":[{"id":"11","label":"Manifestation culturelle, artistique, scientifique, sportive y compris mission ponctuelle"},{"id":"88","label":"Manifestation culturelle, artistique, scientifique, sportive y compris mission ponctuelle - Mineurs"}]},{"id":"6","label":"DOM (6 - 12 ans)","checklists":[{"id":"88","label":"Manifestation culturelle, artistique, scientifique, sportive y compris mission ponctuelle - Mineurs"}]},{"id":"8","label":"DOM (Moins de 6 ans)","checklists":[{"id":"88","label":"Manifestation culturelle, artistique, scientifique, sportive y compris mission ponctuelle - Mineurs"}]},{"id":"1","label":"Schengen ( + de 12 ans)","checklists":[{"id":"11","label":"Manifestation culturelle, artistique, scientifique, sportive y compris mission ponctuelle"},{"id":"88","label":"Manifestation culturelle, artistique, scientifique, sportive y compris mission ponctuelle - Mineurs"}]},{"id":"2","label":"Schengen (6 - 12 ans)","checklists":[{"id":"88","label":"Manifestation culturelle, artistique, scientifique, sportive y compris mission ponctuelle - Mineurs"}]},{"id":"3","label":"Schengen (Moins de 6 ans)","checklists":[{"id":"88","label":"Manifestation culturelle, artistique, scientifique, sportive y compris mission ponctuelle - Mineurs"}]}]},"013-377E4":{"label":"Mannequin","variations":[{"id":"1","label":"Schengen ( + de 12 ans)","checklists":[{"id":"12","label":"Mannequin"}]}]},"013-1501C0":{"label":"Marin","variations":[{"id":"1","label":"Schengen ( + de 12 ans)","checklists":[{"id":"18","label":"Marin/Bateau immatricul\\u00e9 en France"},{"id":"17","label":"Marin/Bateau immatricul\\u00e9 \\u00e0 l'\\u00e9tranger"}]}]},"013-8B572":{"label":"Membres d'une congr\\u00e9gation religieuse relevant du Formulaire Unique","variations":[{"id":"3","label":"CTOM","checklists":[{"id":"33","label":"Membres d'une congr\\u00e9gation religieuse relevant du Formulaire Unique"}]},{"id":"2","label":"DOM ( + de 12 ans)","checklists":[{"id":"33","label":"Membres d'une congr\\u00e9gation religieuse relevant du Formulaire Unique"}]},{"id":"1","label":"Schengen ( + de 12 ans)","checklists":[{"id":"33","label":"Membres d'une congr\\u00e9gation religieuse relevant du Formulaire Unique"}]}]},"013-98892":{"label":"Mineur scolaris\\u00e9 (primaire, secondaire ou sup\\u00e9rieur), s\\u00e9jour individuel","variations":[{"id":"1","label":"S\\u00e9jour individuel","checklists":[{"id":"48","label":"Mineur scolaris\\u00e9 (primaire, secondaire ou sup\\u00e9rieur), s\\u00e9jour individuel"}]}]},"017-1377D6":{"label":"Mineur scolaris\\u00e9 (primaire, secondaire ou sup\\u00e9rieur), s\\u00e9jour organis\\u00e9 par un organisme sp\\u00e9cialis\\u00e9","variations":[{"id":"1","label":"Mineur scolaris\\u00e9 (primaire, secondaire ou sup\\u00e9rieur), s\\u00e9jour organis\\u00e9 par un organisme sp\\u00e9cialis\\u00e9","checklists":[{"id":"49","label":"Mineur scolaris\\u00e9 (primaire, secondaire ou sup\\u00e9rieur), s\\u00e9jour organis\\u00e9 par un organisme sp\\u00e9cialis\\u00e9"}]}]},"20241025-A210":{"label":"Mission officielle diplomate et membre d'une organisation internationale sur passeport ordinaire","variations":[{"id":"2","label":"General","checklists":[{"id":"34","label":"Mission officielle diplomate et membre d'une organisation internationale sur passeport ordinaire"}]}]},"013-B9DF8":{"label":"Parent d'enfant fran\\u00e7ais mineur","variations":[{"id":"3","label":"CTOM","checklists":[{"id":"26","label":"Parent d'enfant fran\\u00e7ais mineur"}]},{"id":"2","label":"DOM  (+ de 12 ans)","checklists":[{"id":"26","label":"Parent d'enfant fran\\u00e7ais mineur"}]},{"id":"1","label":"Schengen  ( + de 12 ans)","checklists":[{"id":"26","label":"Parent d'enfant fran\\u00e7ais mineur"}]}]},"013-27918":{"label":"Profession lib\\u00e9rale ou ind\\u00e9pendante","variations":[{"id":"1","label":"Profession lib\\u00e9rale ou ind\\u00e9pendante","checklists":[{"id":"45","label":"Profession lib\\u00e9rale ou ind\\u00e9pendante"}]}]},"013-59959":{"label":"P\\u00e8re/M\\u00e8re de r\\u00e9fugi\\u00e9, de b\\u00e9n\\u00e9ficiaire de la protection subsidiaire ou d'apatride","variations":[{"id":"1","label":"P\\u00e8re/M\\u00e8re de r\\u00e9fugi\\u00e9, de b\\u00e9n\\u00e9ficiaire de la protection subsidiaire ou d'apatride","checklists":[{"id":"66","label":"P\\u00e8re/M\\u00e8re de r\\u00e9fugi\\u00e9, de b\\u00e9n\\u00e9ficiaire de la protection subsidiaire ou d'apatride"}]}]},"013-165103":{"label":"Regroupement familial","variations":[{"id":"1","label":"Regroupement familial","checklists":[{"id":"64","label":"Regroupement familial - OFII"}]}]},"013-19BD3":{"label":"Regroupement familial (Enfant mineur, dont enfant mineur de conjoint \\u00e9tranger de Fran\\u00e7ais)","variations":[{"id":"1","label":"Regroupement familial (Enfant mineur, dont enfant mineur de conjoint \\u00e9tranger de Fran\\u00e7ais)","checklists":[{"id":"61","label":"Regroupement familial (Enfant mineur, dont enfant mineur de conjoint \\u00e9tranger de Fran\\u00e7ais) - OFII"}]}]},"013-3137B":{"label":"Scientifique / Chercheur","variations":[{"id":"1","label":"Schengen  ( + de 12 ans)","checklists":[{"id":"15","label":"Scientifique / Chercheur"}]}]},"013-1176AB":{"label":"Soins medicaux","variations":[{"id":"4","label":"Ancien combattant","checklists":[{"id":"77","label":"Soins m\\u00e9dicaux - Ancien combattant"}]},{"id":"7","label":"CTOM","checklists":[{"id":"35","label":"Soins m\\u00e9dicaux - Adulte"},{"id":"36","label":"Soins m\\u00e9dicaux - Mineur"}]},{"id":"5","label":"DOM (+ de 12 ans)","checklists":[{"id":"35","label":"Soins m\\u00e9dicaux - Adulte"},{"id":"36","label":"Soins m\\u00e9dicaux - Mineur"}]},{"id":"6","label":"DOM (6 - 12 ans)","checklists":[{"id":"36","label":"Soins m\\u00e9dicaux - Mineur"}]},{"id":"8","label":"DOM (Moins de 6 ans)","checklists":[{"id":"36","label":"Soins m\\u00e9dicaux - Mineur"}]},{"id":"1","label":"Schengen ( + de 12 ans)","checklists":[{"id":"35","label":"Soins m\\u00e9dicaux - Adulte"},{"id":"36","label":"Soins m\\u00e9dicaux - Mineur"}]},{"id":"2","label":"Schengen (6 - 12 ans)","checklists":[{"id":"36","label":"Soins m\\u00e9dicaux - Mineur"}]},{"id":"3","label":"Schengen (Moins de 6 ans)","checklists":[{"id":"36","label":"Soins m\\u00e9dicaux - Mineur"}]}]},"013-199E9F":{"label":"Stage professionnel salari\\u00e9","variations":[{"id":"1","label":"Stage professionnel salari\\u00e9","checklists":[{"id":"55","label":"Stage professionnel salari\\u00e9"}]}]},"013-F59A2":{"label":"Stage salari\\u00e9","variations":[{"id":"7","label":"CTOM","checklists":[{"id":"16","label":"Stage salari\\u00e9"}]},{"id":"5","label":"DOM (+ de 12 ans)","checklists":[{"id":"16","label":"Stage salari\\u00e9"}]},{"id":"1","label":"Schengen ( + de 12 ans)","checklists":[{"id":"16","label":"Stage salari\\u00e9"}]}]},"013-143096":{"label":"Stage \\u00e9tudiant","variations":[{"id":"1","label":"Stage \\u00e9tudiant","checklists":[{"id":"37","label":"Stage \\u00e9tudiant"}]}]},"013-36697":{"label":"Stage \\u00e9tudiant","variations":[{"id":"7","label":"CTOM","checklists":[{"id":"47","label":"Stage \\u00e9tudiant"}]},{"id":"5","label":"DOM (+ de 12 ans)","checklists":[{"id":"47","label":"Stage \\u00e9tudiant"}]},{"id":"1","label":"Schengen ( + de 12 ans)","checklists":[{"id":"47","label":"Stage \\u00e9tudiant"}]}]},"013-CA581":{"label":"Titulaire d'une rente d'accident du travail ou de maladie professionnelle, vers\\u00e9e par un Organisme fran\\u00e7ais","variations":[{"id":"1","label":"Titulaire d'une rente d'accident du travail ou de maladie professionnelle, vers\\u00e9e par un Organisme fran\\u00e7ais","checklists":[{"id":"65","label":"Titulaire d'une rente d'accident du travail ou de maladie professionnelle, vers\\u00e9e par un Organisme fran\\u00e7ais"}]}]},"013-1C5AE5":{"label":"Tourisme / Visite priv\\u00e9e","variations":[{"id":"7","label":"CTOM","checklists":[{"id":"3","label":"CTOM - Tourisme - Adulte"},{"id":"4","label":"CTOM - Tourisme - Mineur"}]},{"id":"5","label":"DOM (+ de 12 ans)","checklists":[{"id":"6","label":"DOM Tourisme - Adulte"},{"id":"7","label":"DOM Tourisme - Mineur"},{"id":"8","label":"DOM Voyage professionnel"}]},{"id":"6","label":"DOM (6 - 12 ans)","checklists":[{"id":"7","label":"DOM Tourisme - Mineur"}]},{"id":"8","label":"DOM (Moins de 6 ans)","checklists":[{"id":"7","label":"DOM Tourisme - Mineur"}]},{"id":"1","label":"Schengen ( + de 12 ans)","checklists":[{"id":"1","label":"Tourisme/ Visite priv\\u00e9e"},{"id":"2","label":"Tourisme/ Visite priv\\u00e9e - Mineurs"}]},{"id":"2","label":"Schengen (6 - 12 ans)","checklists":[{"id":"2","label":"Tourisme/ Visite priv\\u00e9e - Mineurs"}]},{"id":"3","label":"Schengen (Moins de 6 ans)","checklists":[{"id":"2","label":"Tourisme/ Visite priv\\u00e9e - Mineurs"}]}]},"180713-EU_Family_Visa":{"label":"Transit A\\u00e9roportuaire","variations":[{"id":"4","label":"Transit A\\u00e9roportuaire","checklists":[{"id":"39","label":"Transit A\\u00e9roportuaire"}]}]},"013-E58E6":{"label":"Visa de retour","variations":[{"id":"1","label":"Visa de retour","checklists":[{"id":"53","label":"Visa de retour"}]}]},"013-E0806":{"label":"Visite familiale","variations":[{"id":"7","label":"CTOM","checklists":[{"id":"28","label":"Visite familiale - Adulte"},{"id":"29","label":"Visite familiale - Mineur"}]},{"id":"5","label":"DOM (+ de 12 ans)","checklists":[{"id":"28","label":"Visite familiale - Adulte"},{"id":"29","label":"Visite familiale - Mineur"}]},{"id":"6","label":"DOM (6 - 12 ans)","checklists":[{"id":"29","label":"Visite familiale - Mineur"}]},{"id":"8","label":"DOM (Moins de 6 ans)","checklists":[{"id":"29","label":"Visite familiale - Mineur"}]},{"id":"1","label":"Schengen ( + de 12 ans)","checklists":[{"id":"28","label":"Visite familiale - Adulte"},{"id":"29","label":"Visite familiale - Mineur"}]},{"id":"2","label":"Schengen (6 - 12 ans)","checklists":[{"id":"29","label":"Visite familiale - Mineur"}]},{"id":"3","label":"Schengen (Moins de 6 ans)","checklists":[{"id":"29","label":"Visite familiale - Mineur"}]}]},"013-113581":{"label":"Visite familiale / enfant ou parent \\u00e9tranger de Fran\\u00e7ais ou de son conjoint","variations":[{"id":"34","label":"Conjoint de fran\\u00e7ais","checklists":[{"id":"30","label":"Visite familiale / Parent \\u00e9tranger de Fran\\u00e7ais ou de son conjoint"}]},{"id":"1","label":"Schengen ( + de 12 ans)","checklists":[{"id":"74","label":"Enfant ou parent \\u00e9tranger de Fran\\u00e7ais ou de son conjoint"},{"id":"30","label":"Visite familiale / Parent \\u00e9tranger de Fran\\u00e7ais ou de son conjoint"}]},{"id":"2","label":"Schengen (6 - 12 ans)","checklists":[{"id":"74","label":"Enfant ou parent \\u00e9tranger de Fran\\u00e7ais ou de son conjoint"}]},{"id":"3","label":"Schengen (Moins de 6 ans)","checklists":[{"id":"74","label":"Enfant ou parent \\u00e9tranger de Fran\\u00e7ais ou de son conjoint"}]}]},"013-B3FFD":{"label":"Visite priv\\u00e9e / conjoint de fran\\u00e7ais","variations":[{"id":"1","label":"Visite priv\\u00e9e / conjoint de fran\\u00e7ais","checklists":[{"id":"31","label":"Visite priv\\u00e9e / conjoint de fran\\u00e7ais"}]}]},"013-1FDF5":{"label":"Visite priv\\u00e9e / famille de UE/EEE/Suisse","variations":[{"id":"1","label":"Visite priv\\u00e9e / famille de UE/EEE/Suisse","checklists":[{"id":"32","label":"Visite priv\\u00e9e / famille de UE/EEE/Suisse"}]}]},"013-1757AD":{"label":"Visiteur majeur","variations":[{"id":"1","label":"Visiteur majeur","checklists":[{"id":"50","label":"Visiteur majeur"}]}]},"013-EC4BA":{"label":"Visiteur mineur","variations":[{"id":"1","label":"Visiteur mineur","checklists":[{"id":"51","label":"Visiteur mineur"}]}]},"013-DAFD0":{"label":"Voyage professionnel","variations":[{"id":"1","label":"Schengen ( + de 12 ans)","checklists":[{"id":"9","label":"Voyage professionnel"}]}]}};
+        const visaVariationLabelMap = Object.fromEntries(
+            Object.entries(visaTypeVariationMap).flatMap(([, entry]) =>
+                entry.variations.map((variation) => [variation.id, variation.label])
+            )
+        );
+        const visaChecklistLabelMap = Object.fromEntries(
+            Object.entries(visaTypeVariationMap).flatMap(([, entry]) =>
+                entry.variations.flatMap((variation) =>
+                    variation.checklists.map((checklist) => [checklist.id, checklist.label])
+                )
+            )
+        );
         refreshButton.addEventListener('click', loadDashboard);
         manualForm.addEventListener('submit', submitManualForm);
         visaStayDurationSelect.addEventListener('change', () => {
@@ -485,6 +510,12 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
         });
         travelPurposeSelect.addEventListener('change', () => {
             syncTypeVisaOptions(visaStayDurationSelect.value, travelPurposeSelect.value);
+        });
+        typeVisaSelect.addEventListener('change', () => {
+            syncVisaVariationOptions(typeVisaSelect.value);
+        });
+        visaVariationSelect.addEventListener('change', () => {
+            syncVisaChecklistOptions(typeVisaSelect.value, visaVariationSelect.value);
         });
 
         syncTravelPurposeOptions(visaStayDurationSelect.value || 'short_stay_visa');
@@ -563,6 +594,14 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                             <p class="record-value">${escapeHtml(displayTypeVisa(row))}</p>
                         </div>
                         <div class="record-item">
+                            <p class="record-label">Variation de visa</p>
+                            <p class="record-value">${escapeHtml(displayVisaVariation(row))}</p>
+                        </div>
+                        <div class="record-item">
+                            <p class="record-label">Situation demandeur</p>
+                            <p class="record-value">${escapeHtml(displayVisaChecklist(row))}</p>
+                        </div>
+                        <div class="record-item">
                             <p class="record-label">Demandeurs / Formule</p>
                             <p class="record-value">${escapeHtml(row.nb_travellers || '1')} · ${escapeHtml(row.formula || 'standard')}</p>
                         </div>
@@ -606,6 +645,8 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                 visaStayDuration: formData.get('visaStayDuration') || '',
                 travelPurpose: formData.get('travelPurpose') || '',
                 typeVisa: formData.get('typeVisa') || '',
+                visaVariation: formData.get('visaVariation') || '',
+                visaChecklist: formData.get('visaChecklist') || '',
                 visaFileVariation: formData.get('visaFileVariation') || ''
             };
 
@@ -663,6 +704,8 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
             manualForm.elements.visaStayDuration.value = data.visaStayDuration || 'short_stay_visa';
             syncTravelPurposeOptions(manualForm.elements.visaStayDuration.value, data.travelPurpose || '');
             syncTypeVisaOptions(manualForm.elements.visaStayDuration.value, data.travelPurpose || '', data.typeVisa || '');
+            syncVisaVariationOptions(data.typeVisa || '', data.visaVariation || '');
+            syncVisaChecklistOptions(data.typeVisa || '', data.visaVariation || '', data.visaChecklist || '');
             manualForm.elements.visaFileVariation.value = data.visaFileVariation || '';
             manualForm.elements.raw_text.value = row.raw_text || '';
             formStatus.textContent = `Fiche ${row.id} chargee dans le formulaire. Modifiez puis enregistrez.`;
@@ -712,7 +755,17 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
 
         function displayTypeVisa(row) {
             const value = extracted(row).typeVisa || '';
-            return typeVisaLabelMap[value] || value;
+            return decodeEscapedText(typeVisaLabelMap[value] || value);
+        }
+
+        function displayVisaVariation(row) {
+            const value = extracted(row).visaVariation || '';
+            return decodeEscapedText(visaVariationLabelMap[value] || value);
+        }
+
+        function displayVisaChecklist(row) {
+            const value = extracted(row).visaChecklist || '';
+            return decodeEscapedText(visaChecklistLabelMap[value] || value);
         }
 
         function displayCategory(row) {
@@ -753,6 +806,37 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
             if (selected && options.some(([value]) => value === selected)) {
                 typeVisaSelect.value = selected;
             }
+
+            syncVisaVariationOptions(typeVisaSelect.value || selected || '');
+        }
+
+        function syncVisaVariationOptions(typeVisa, selectedValue = '') {
+            const selected = selectedValue || visaVariationSelect.value || '';
+            const options = visaTypeVariationMap[typeVisa]?.variations || [];
+            visaVariationSelect.innerHTML = [
+                '<option value="">Selectionner</option>',
+                ...options.map((variation) => `<option value="${escapeHtml(variation.id)}">${escapeHtml(decodeEscapedText(variation.label))}</option>`)
+            ].join('');
+
+            if (selected && options.some((variation) => variation.id === selected)) {
+                visaVariationSelect.value = selected;
+            }
+
+            syncVisaChecklistOptions(typeVisa, visaVariationSelect.value || selected || '');
+        }
+
+        function syncVisaChecklistOptions(typeVisa, visaVariation, selectedValue = '') {
+            const selected = selectedValue || visaChecklistSelect.value || '';
+            const options = (visaTypeVariationMap[typeVisa]?.variations || [])
+                .find((variation) => variation.id === visaVariation)?.checklists || [];
+            visaChecklistSelect.innerHTML = [
+                '<option value="">Selectionner</option>',
+                ...options.map((checklist) => `<option value="${escapeHtml(checklist.id)}">${escapeHtml(decodeEscapedText(checklist.label))}</option>`)
+            ].join('');
+
+            if (selected && options.some((checklist) => checklist.id === selected)) {
+                visaChecklistSelect.value = selected;
+            }
         }
 
         function displayDate(value) {
@@ -769,6 +853,12 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                 .replaceAll('>', '&gt;')
                 .replaceAll('"', '&quot;')
                 .replaceAll("'", '&#039;');
+        }
+
+        function decodeEscapedText(value) {
+            return String(value ?? '').replace(/\\\\u([0-9a-fA-F]{4})/g, (_, hex) =>
+                String.fromCharCode(parseInt(hex, 16))
+            );
         }
     </script>
     <?php endif; ?>

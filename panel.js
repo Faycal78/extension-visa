@@ -625,6 +625,8 @@ function normalizeRecordToPassportData(record) {
     visaStayDuration: extracted.visaStayDuration || "short_stay_visa",
     travelPurpose: extracted.travelPurpose || "",
     typeVisa: extracted.typeVisa || "",
+    visaVariation: extracted.visaVariation || "",
+    visaChecklist: extracted.visaChecklist || "",
     visaFileVariation: extracted.visaFileVariation || "",
     nbTravellers: extracted.nbTravellers || record.nb_travellers || "1",
     formula: extracted.formula || record.formula || "standard",
@@ -690,6 +692,8 @@ function extractPassportData(text) {
   data.visaStayDuration = "short_stay_visa";
   data.travelPurpose = "";
   data.typeVisa = "";
+  data.visaVariation = "";
+  data.visaChecklist = "";
   data.visaFileVariation = "";
   data.nbTravellers = "1";
   data.formula = "standard";
@@ -841,6 +845,8 @@ function renderPassportData(data) {
     ["Type de visa", data.visaStayDuration],
     ["Projet", data.travelPurpose],
     ["Motif principal", data.typeVisa],
+    ["Variation visa", data.visaVariation],
+    ["Situation demandeur", data.visaChecklist],
     ["Categorie demandeur", data.visaFileVariation],
     ["Sexe", data.sex],
     ["Nombre de demandeurs", data.nbTravellers],
@@ -876,6 +882,8 @@ function hasPassportAutofillData(data) {
       data.visaStayDuration ||
       data.travelPurpose ||
       data.typeVisa ||
+      data.visaVariation ||
+      data.visaChecklist ||
       data.visaFileVariation ||
       data.sex ||
       data.nbTravellers ||
@@ -913,6 +921,8 @@ function buildAutofillPayload(data) {
     visaStayDuration: data.visaStayDuration || "",
     travelPurpose: data.travelPurpose || "",
     typeVisa: data.typeVisa || "",
+    visaVariation: data.visaVariation || "",
+    visaChecklist: data.visaChecklist || "",
     visaFileVariation: data.visaFileVariation || "",
     sex: data.sex || "",
     nbTravellers: data.nbTravellers || "1",
@@ -1599,6 +1609,8 @@ function fillPassportFieldsOnPage(passportData) {
     const visaStayDurationSelect = section.querySelector("#visa_stay_duration_traveller_1");
     const travelPurposeSelect = section.querySelector("#travel_purpose_traveller_1");
     const typeVisaSelect = section.querySelector("#type_visa_traveller_1");
+    const visaVariationSelect = section.querySelector("#precision1_traveller_1");
+    const visaChecklistSelect = section.querySelector("#precision2_traveller_1");
     const visaFileVariationSelect = section.querySelector("#visa_file_variation_traveller_1");
     const standardRadio = section.querySelector('input[type="radio"][name="formula"][value="standard"]');
     const premiumRadio = section.querySelector('input[type="radio"][name="formula"][value="premium"]');
@@ -1620,6 +1632,8 @@ function fillPassportFieldsOnPage(passportData) {
     localCount += assignIfPresent(visaStayDurationSelect, "visaStayDuration", passportData.visaStayDuration, "visaStayDuration");
     localCount += assignIfPresent(travelPurposeSelect, "travelPurpose", passportData.travelPurpose, "travelPurpose");
     localCount += assignIfPresent(typeVisaSelect, "typeVisa", passportData.typeVisa, "typeVisa");
+    localCount += assignIfPresent(visaVariationSelect, "visaVariation", passportData.visaVariation, "visaVariation");
+    localCount += assignIfPresent(visaChecklistSelect, "visaChecklist", passportData.visaChecklist, "visaChecklist");
     localCount += assignIfPresent(visaFileVariationSelect, "visaFileVariation", passportData.visaFileVariation, "visaFileVariation");
     scheduleDependentSelectRetries();
 
@@ -1667,9 +1681,11 @@ function fillPassportFieldsOnPage(passportData) {
 
     function scheduleDependentSelectRetries() {
       const dependentFields = [
-        [travelPurposeSelect, "travelPurpose", passportData.travelPurpose],
-        [typeVisaSelect, "typeVisa", passportData.typeVisa],
-        [visaFileVariationSelect, "visaFileVariation", passportData.visaFileVariation]
+        [() => section.querySelector("#travel_purpose_traveller_1"), "travelPurpose", passportData.travelPurpose],
+        [() => section.querySelector("#type_visa_traveller_1"), "typeVisa", passportData.typeVisa],
+        [() => section.querySelector("#precision1_traveller_1"), "visaVariation", passportData.visaVariation],
+        [() => section.querySelector("#precision2_traveller_1"), "visaChecklist", passportData.visaChecklist],
+        [() => section.querySelector("#visa_file_variation_traveller_1"), "visaFileVariation", passportData.visaFileVariation]
       ].filter(([, , value]) => Boolean(value));
 
       if (!dependentFields.length) {
@@ -1678,7 +1694,8 @@ function fillPassportFieldsOnPage(passportData) {
 
       [250, 800, 1600].forEach((delay) => {
         window.setTimeout(() => {
-          dependentFields.forEach(([element, key, value]) => {
+          dependentFields.forEach(([getElement, key, value]) => {
+            const element = getElement();
             if (!element) {
               return;
             }
