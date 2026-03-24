@@ -622,7 +622,7 @@ function normalizeRecordToPassportData(record) {
     email: extracted.email || record.email || "",
     emailConfirm: extracted.emailConfirm || extracted.email || record.email || "",
     departureDate: extracted.departureDate || "",
-    visaStayDuration: extracted.visaStayDuration || "",
+    visaStayDuration: extracted.visaStayDuration || "short_stay_visa",
     travelPurpose: extracted.travelPurpose || "",
     typeVisa: extracted.typeVisa || "",
     visaFileVariation: extracted.visaFileVariation || "",
@@ -687,7 +687,7 @@ function extractPassportData(text) {
   data.departureDay = "";
   data.departureMonth = "";
   data.departureYear = "";
-  data.visaStayDuration = "";
+  data.visaStayDuration = "short_stay_visa";
   data.travelPurpose = "";
   data.typeVisa = "";
   data.visaFileVariation = "";
@@ -1362,6 +1362,27 @@ function fillPassportFieldsOnPage(passportData) {
       }
       if (normalizedValue.includes("transit")) {
         candidates.push("transit_visa", "airport transit", "transit");
+      }
+    }
+
+    if (key === "travelPurpose") {
+      if (normalizedValue.includes("etablissement")) {
+        candidates.push("etablissement_familial_prive", "etablissement familial ou prive");
+      }
+      if (normalizedValue.includes("medical")) {
+        candidates.push("raisons_medicales", "raisons medicales");
+      }
+      if (normalizedValue.includes("tourisme")) {
+        candidates.push("tourisme", "tourisme");
+      }
+      if (normalizedValue.includes("travailler")) {
+        candidates.push("travailler", "travailler");
+      }
+      if (normalizedValue.includes("visite")) {
+        candidates.push("visite_familiale_privee", "visite familiale ou privee");
+      }
+      if (normalizedValue.includes("etudes")) {
+        candidates.push("etudes", "etudes");
       }
     }
 

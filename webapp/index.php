@@ -295,22 +295,20 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                         </label>
                         <label>Type de visa demande
                             <select name="visaStayDuration">
-                                <option value="">Selectionner</option>
+                                <option value="short_stay_visa" selected>Court sejour (≤ 90 jours)</option>
                                 <option value="long_stay_visa">Long sejour (&gt; 90 jours)</option>
-                                <option value="short_stay_visa">Court sejour (≤ 90 jours)</option>
                                 <option value="transit_visa">Airport transit</option>
                             </select>
                         </label>
                         <label>Votre projet
                             <select name="travelPurpose">
                                 <option value="">Selectionner</option>
+                                <option value="etablissement_familial_prive">Etablissement familial ou prive</option>
+                                <option value="raisons_medicales">Raisons medicales</option>
                                 <option value="tourisme">Tourisme</option>
-                                <option value="affaires">Affaires</option>
-                                <option value="visite_familiale">Visite familiale</option>
+                                <option value="travailler">Travailler</option>
+                                <option value="visite_familiale_privee">Visite familiale ou privee</option>
                                 <option value="etudes">Etudes</option>
-                                <option value="medical">Medical</option>
-                                <option value="transit">Transit</option>
-                                <option value="installation">Installation</option>
                             </select>
                         </label>
                         <label>Motif principal du sejour
