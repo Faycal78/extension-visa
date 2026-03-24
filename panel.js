@@ -498,7 +498,11 @@ function humanizeLanguage(value) {
   const labels = {
     fra: "francais",
     eng: "anglais",
-    "fra+eng": "francais + anglais"
+    ara: "arabe",
+    "fra+eng": "francais + anglais",
+    "fra+ara": "francais + arabe",
+    "eng+ara": "anglais + arabe",
+    "fra+eng+ara": "francais + anglais + arabe"
   };
 
   return labels[value] || value;
@@ -614,12 +618,25 @@ function normalizeRecordToPassportData(record) {
     birthDate,
     expiryDate,
     sex,
+    mobilePhone: extracted.mobilePhone || record.mobile_phone || "",
+    email: extracted.email || record.email || "",
+    emailConfirm: extracted.emailConfirm || extracted.email || record.email || "",
+    departureDate: extracted.departureDate || "",
+    visaStayDuration: extracted.visaStayDuration || "",
+    travelPurpose: extracted.travelPurpose || "",
+    typeVisa: extracted.typeVisa || "",
+    visaFileVariation: extracted.visaFileVariation || "",
+    nbTravellers: extracted.nbTravellers || record.nb_travellers || "1",
+    formula: extracted.formula || record.formula || "standard",
     birthDay: extractDatePart(birthDate, "day"),
     birthMonth: extractDatePart(birthDate, "month"),
     birthYear: extractDatePart(birthDate, "year"),
     expiryDay: extractDatePart(expiryDate, "day"),
     expiryMonth: extractDatePart(expiryDate, "month"),
-    expiryYear: extractDatePart(expiryDate, "year")
+    expiryYear: extractDatePart(expiryDate, "year"),
+    departureDay: extractDatePart(extracted.departureDate || "", "day"),
+    departureMonth: extractDatePart(extracted.departureDate || "", "month"),
+    departureYear: extractDatePart(extracted.departureDate || "", "year")
   };
 }
 
@@ -642,15 +659,16 @@ function buildDashboardUrl(baseUrl) {
 function extractPassportData(text) {
   const mrzData = extractMrzPassportData(text);
   const fallbackData = extractPassportFallbackData(text);
+  const arabicData = extractPassportArabicData(text);
   const data = {
-    surname: coalesceValue(mrzData.surname, fallbackData.surname),
-    givenNames: coalesceValue(mrzData.givenNames, fallbackData.givenNames),
+    surname: coalesceValue(mrzData.surname, fallbackData.surname, arabicData.surname),
+    givenNames: coalesceValue(mrzData.givenNames, fallbackData.givenNames, arabicData.givenNames),
     passportNumber: coalesceValue(mrzData.passportNumber, fallbackData.passportNumber),
-    nationality: coalesceValue(fallbackData.nationality, mrzData.nationality),
-    issuingCountry: coalesceValue(fallbackData.issuingCountry, mrzData.issuingCountry),
-    birthDate: coalesceValue(mrzData.birthDate, fallbackData.birthDate),
+    nationality: coalesceValue(fallbackData.nationality, mrzData.nationality, arabicData.nationality),
+    issuingCountry: coalesceValue(fallbackData.issuingCountry, mrzData.issuingCountry, arabicData.issuingCountry),
+    birthDate: coalesceValue(mrzData.birthDate, fallbackData.birthDate, arabicData.birthDate),
     expiryDate: coalesceValue(mrzData.expiryDate, fallbackData.expiryDate),
-    sex: coalesceValue(mrzData.sex, fallbackData.sex),
+    sex: coalesceValue(mrzData.sex, fallbackData.sex, arabicData.sex),
     mrzLines: mrzData.mrzLines
   };
 
@@ -662,6 +680,19 @@ function extractPassportData(text) {
   data.expiryDay = extractDatePart(data.expiryDate, "day");
   data.expiryMonth = extractDatePart(data.expiryDate, "month");
   data.expiryYear = extractDatePart(data.expiryDate, "year");
+  data.mobilePhone = "";
+  data.email = "";
+  data.emailConfirm = "";
+  data.departureDate = "";
+  data.departureDay = "";
+  data.departureMonth = "";
+  data.departureYear = "";
+  data.visaStayDuration = "";
+  data.travelPurpose = "";
+  data.typeVisa = "";
+  data.visaFileVariation = "";
+  data.nbTravellers = "1";
+  data.formula = "standard";
 
   return data;
 }
@@ -752,6 +783,47 @@ function extractPassportFallbackData(text) {
   };
 }
 
+function extractPassportArabicData(text) {
+  const normalizedText = normalizeArabicDigits(String(text || "")).replace(/\r/g, "");
+
+  return {
+    surname: cleanArabicTextCapture(
+      capturePattern(normalizedText, [
+        /(?:اللقب|اسم\s+العائلة|النسب)\s*[:\-]?\s*([\p{Script=Arabic}\s]{2,40})/u
+      ])
+    ),
+    givenNames: cleanArabicTextCapture(
+      capturePattern(normalizedText, [
+        /(?:الاسم(?:\s+الشخصي)?|الاسم\s+الكامل|الاسماء\s+الشخصية)\s*[:\-]?\s*([\p{Script=Arabic}\s]{2,60})/u
+      ])
+    ),
+    nationality: cleanArabicTextCapture(
+      capturePattern(normalizedText, [
+        /(?:الجنسية)\s*[:\-]?\s*([\p{Script=Arabic}\s]{2,30})/u
+      ])
+    ),
+    issuingCountry: cleanArabicTextCapture(
+      capturePattern(normalizedText, [
+        /(?:بلد\s+الإصدار|بلد\s+الاصدار|دولة\s+الإصدار|دولة\s+الاصدار)\s*[:\-]?\s*([\p{Script=Arabic}\s]{2,30})/u
+      ])
+    ),
+    birthDate: normalizeLooseDate(
+      capturePattern(normalizedText, [
+        /(?:تاريخ\s+الميلاد|تاريخ\s+الازدياد)\s*[:\-]?\s*([0-3]?\d[\/.\- ][01]?\d[\/.\- ](?:19|20)?\d{2})/u
+      ])
+    ),
+    sex: normalizeSex(
+      capturePattern(normalizedText, [
+        /(?:الجنس)\s*[:\-]?\s*([MF])/u,
+        /(?:الجنس)\s*[:\-]?\s*(ذكر|انثى|أنثى)/u
+      ])
+        .replace("ذكر", "M")
+        .replace("انثى", "F")
+        .replace("أنثى", "F")
+    )
+  };
+}
+
 function renderPassportData(data) {
   const rows = [
     ["Nom", data.surname],
@@ -763,7 +835,16 @@ function renderPassportData(data) {
     ["Pays emetteur", data.issuingCountry],
     ["Date de naissance", formatDisplayDate(data.birthDate)],
     ["Date d'expiration", formatDisplayDate(data.expiryDate)],
-    ["Sexe", data.sex]
+    ["Telephone", data.mobilePhone],
+    ["Email", data.email],
+    ["Date de depart", formatDisplayDate(data.departureDate)],
+    ["Type de visa", data.visaStayDuration],
+    ["Projet", data.travelPurpose],
+    ["Motif principal", data.typeVisa],
+    ["Categorie demandeur", data.visaFileVariation],
+    ["Sexe", data.sex],
+    ["Nombre de demandeurs", data.nbTravellers],
+    ["Formule", data.formula]
   ].filter(([, value]) => value);
 
   if (!rows.length) {
@@ -789,7 +870,16 @@ function hasPassportAutofillData(data) {
       data.passportNumber ||
       data.birthDate ||
       data.expiryDate ||
-      data.sex
+      data.mobilePhone ||
+      data.email ||
+      data.departureDate ||
+      data.visaStayDuration ||
+      data.travelPurpose ||
+      data.typeVisa ||
+      data.visaFileVariation ||
+      data.sex ||
+      data.nbTravellers ||
+      data.formula
   );
 }
 
@@ -812,7 +902,21 @@ function buildAutofillPayload(data) {
     expiryDay: data.expiryDay || "",
     expiryMonth: data.expiryMonth || "",
     expiryYear: data.expiryYear || "",
-    sex: data.sex || ""
+    mobilePhone: data.mobilePhone || "",
+    email: data.email || "",
+    emailConfirm: data.emailConfirm || data.email || "",
+    departureDate: data.departureDate || "",
+    departureDateDisplay: formatDisplayDate(data.departureDate),
+    departureDay: data.departureDay || "",
+    departureMonth: data.departureMonth || "",
+    departureYear: data.departureYear || "",
+    visaStayDuration: data.visaStayDuration || "",
+    travelPurpose: data.travelPurpose || "",
+    typeVisa: data.typeVisa || "",
+    visaFileVariation: data.visaFileVariation || "",
+    sex: data.sex || "",
+    nbTravellers: data.nbTravellers || "1",
+    formula: data.formula || "standard"
   };
 }
 
@@ -909,6 +1013,43 @@ function fillPassportFieldsOnPage(passportData) {
       matcher: (text, element) =>
         element instanceof HTMLSelectElement &&
         hasAny(text, ["titre", "civilite", "title", "salutation"])
+    },
+    {
+      key: "nbTravellers",
+      value: passportData.nbTravellers,
+      matcher: (text, element) =>
+        element instanceof HTMLInputElement &&
+        hasAny(text, ["nombre de demandeurs", "nb travellers", "nb_travellers", "travellers", "demandeurs"])
+    },
+    {
+      key: "formula",
+      value: passportData.formula,
+      matcher: (text, element) =>
+        element instanceof HTMLInputElement &&
+        element.type === "radio" &&
+        hasAny(text, ["demande standard", "service premium", "formula", "premium", "standard"])
+    },
+    {
+      key: "mobilePhone",
+      value: passportData.mobilePhone,
+      matcher: (text, element) =>
+        element instanceof HTMLInputElement &&
+        hasAny(text, ["telephone", "telephone mobile", "phone", "mobile"])
+    },
+    {
+      key: "email",
+      value: passportData.email,
+      matcher: (text, element) =>
+        element instanceof HTMLInputElement &&
+        hasAny(text, ["email", "e mail"]) &&
+        !hasAny(text, ["confirmation", "confirm"])
+    },
+    {
+      key: "emailConfirm",
+      value: passportData.emailConfirm,
+      matcher: (text, element) =>
+        element instanceof HTMLInputElement &&
+        hasAny(text, ["confirmation de l email", "confirm email", "email confirm"])
     },
     {
       key: "surname",
@@ -1013,6 +1154,34 @@ function fillPassportFieldsOnPage(passportData) {
       key: "expiryYear",
       value: passportData.expiryYear,
       matcher: (text) => hasAny(text, ["expiry", "expiration", "expire"]) && hasAny(text, ["year", "annee"])
+    },
+    {
+      key: "visaStayDuration",
+      value: passportData.visaStayDuration,
+      matcher: (text, element) =>
+        element instanceof HTMLSelectElement &&
+        hasAny(text, ["type de visa demande", "visa stay duration", "duree de sejour"])
+    },
+    {
+      key: "travelPurpose",
+      value: passportData.travelPurpose,
+      matcher: (text, element) =>
+        element instanceof HTMLSelectElement &&
+        hasAny(text, ["votre projet", "travel purpose"])
+    },
+    {
+      key: "typeVisa",
+      value: passportData.typeVisa,
+      matcher: (text, element) =>
+        element instanceof HTMLSelectElement &&
+        hasAny(text, ["motif principal du sejour", "type visa", "motif principal"])
+    },
+    {
+      key: "visaFileVariation",
+      value: passportData.visaFileVariation,
+      matcher: (text, element) =>
+        element instanceof HTMLSelectElement &&
+        hasAny(text, ["categorie du demandeur", "visa file variation"])
     }
   ];
 
@@ -1076,6 +1245,10 @@ function fillPassportFieldsOnPage(passportData) {
   }
 
   function applyValue(element, key, value) {
+    if (element instanceof HTMLInputElement && element.type === "radio") {
+      return assignRadioValue(element, key, value);
+    }
+
     if (element instanceof HTMLSelectElement) {
       return assignSelectValue(element, key, value);
     }
@@ -1090,6 +1263,32 @@ function fillPassportFieldsOnPage(passportData) {
     element.value = String(value);
     dispatchFieldEvents(element);
     return true;
+  }
+
+  function assignRadioValue(element, key, value) {
+    const target = pickRadioTarget(element, key, value);
+    if (!target) {
+      return false;
+    }
+
+    target.checked = true;
+    target.setAttribute("checked", "checked");
+    dispatchFieldEvents(target);
+    target.click();
+    return target.checked;
+  }
+
+  function pickRadioTarget(element, key, value) {
+    const candidates = Array.from(
+      document.querySelectorAll(`input[type="radio"][name="${CSS.escape(element.name || "")}"]`)
+    );
+    const wanted = normalizedOptionCandidates(key, value);
+
+    return candidates.find((candidate) => {
+      const radioText = `${candidate.value} ${candidate.id} ${getLabelText(candidate)}`.trim();
+      const normalizedText = normalized(radioText);
+      return wanted.some((entry) => normalizedText.includes(entry));
+    }) || null;
   }
 
   function assignSelectValue(element, key, value) {
@@ -1142,6 +1341,27 @@ function fillPassportFieldsOnPage(passportData) {
         candidates.push("male", "masculin", "homme");
       } else if (normalizedValue === "f") {
         candidates.push("female", "feminin", "femme");
+      }
+    }
+
+    if (key === "formula") {
+      if (normalizedValue === "standard") {
+        candidates.push("standard", "demande standard");
+      }
+      if (normalizedValue === "premium") {
+        candidates.push("premium", "service premium");
+      }
+    }
+
+    if (key === "visaStayDuration") {
+      if (normalizedValue.includes("long")) {
+        candidates.push("long_stay_visa", "long sejour", "long stay");
+      }
+      if (normalizedValue.includes("short") || normalizedValue.includes("court")) {
+        candidates.push("short_stay_visa", "court sejour", "short stay");
+      }
+      if (normalizedValue.includes("transit")) {
+        candidates.push("transit_visa", "airport transit", "transit");
       }
     }
 
@@ -1201,15 +1421,43 @@ function fillPassportFieldsOnPage(passportData) {
       }) ||
       visibleInputs[5] ||
       null;
+    const travellersInput =
+      section.querySelector('#nb_travellers, input[name="nb_travellers"]') ||
+      pickFieldInSection(section, "input", ["nombre de demandeurs", "nb travellers", "demandeurs"]) ||
+      null;
+    const phoneInput = section.querySelector("#phone_traveller_1, input[name='phone_traveller_1']");
+    const emailInput = section.querySelector("#email_traveller_1, input[name='email_traveller_1']");
+    const emailConfirmInput = section.querySelector("#email_confirm_traveller_1, input[name='email_confirm_traveller_1']");
     const birthSelects =
       pickCapagoBirthSelects(section) ||
       pickDateSelectsInSection(section, ["date de naissance", "naissance"]) ||
       visibleSelects.slice(1, 4);
+    const departureSelects = pickCapagoDepartureSelects(section);
+    const visaStayDurationSelect = section.querySelector("#visa_stay_duration_traveller_1");
+    const travelPurposeSelect = section.querySelector("#travel_purpose_traveller_1");
+    const typeVisaSelect = section.querySelector("#type_visa_traveller_1");
+    const visaFileVariationSelect = section.querySelector("#visa_file_variation_traveller_1");
+    const standardRadio = section.querySelector('input[type="radio"][name="formula"][value="standard"]');
+    const premiumRadio = section.querySelector('input[type="radio"][name="formula"][value="premium"]');
 
     localCount += assignIfPresent(titleSelect, "title", passportData.title, "title");
     localCount += assignIfPresent(surnameInput, "surname", passportData.surname, "surname");
     localCount += assignIfPresent(givenNamesInput, "givenNames", passportData.givenNames, "givenNames");
     localCount += assignIfPresent(passportInput, "passportNumber", passportData.passportNumber, "passportNumber");
+    localCount += assignIfPresent(phoneInput, "mobilePhone", passportData.mobilePhone, "mobilePhone");
+    localCount += assignIfPresent(emailInput, "email", passportData.email, "email");
+    localCount += assignIfPresent(emailConfirmInput, "emailConfirm", passportData.emailConfirm || passportData.email, "emailConfirm");
+    localCount += assignIfPresent(travellersInput, "nbTravellers", passportData.nbTravellers, "nbTravellers");
+    localCount += assignIfPresent(
+      passportData.formula === "premium" ? premiumRadio : standardRadio,
+      "formula",
+      passportData.formula,
+      "formula"
+    );
+    localCount += assignIfPresent(visaStayDurationSelect, "visaStayDuration", passportData.visaStayDuration, "visaStayDuration");
+    localCount += assignIfPresent(travelPurposeSelect, "travelPurpose", passportData.travelPurpose, "travelPurpose");
+    localCount += assignIfPresent(typeVisaSelect, "typeVisa", passportData.typeVisa, "typeVisa");
+    localCount += assignIfPresent(visaFileVariationSelect, "visaFileVariation", passportData.visaFileVariation, "visaFileVariation");
 
     if (birthSelects?.length >= 3 && passportData.birthDay && passportData.birthMonth && passportData.birthYear) {
       const dateValues = [passportData.birthDay, passportData.birthMonth, passportData.birthYear];
@@ -1217,6 +1465,17 @@ function fillPassportFieldsOnPage(passportData) {
 
       birthSelects.slice(0, 3).forEach((element, index) => {
         if (assignIfPresent(element, dateKeys[index], dateValues[index], "birthDateGroup")) {
+          localCount += 1;
+        }
+      });
+    }
+
+    if (departureSelects?.length >= 3 && passportData.departureDay && passportData.departureMonth && passportData.departureYear) {
+      const dateValues = [passportData.departureDay, passportData.departureMonth, passportData.departureYear];
+      const dateKeys = ["departureDay", "departureMonth", "departureYear"];
+
+      departureSelects.slice(0, 3).forEach((element, index) => {
+        if (assignIfPresent(element, dateKeys[index], dateValues[index], "departureDateGroup")) {
           localCount += 1;
         }
       });
@@ -1299,6 +1558,23 @@ function fillPassportFieldsOnPage(passportData) {
     const daySelect = birthWrapper.querySelector("select.day");
     const monthSelect = birthWrapper.querySelector("select.month");
     const yearSelect = birthWrapper.querySelector("select.year");
+
+    if (!(daySelect && monthSelect && yearSelect)) {
+      return null;
+    }
+
+    return [daySelect, monthSelect, yearSelect];
+  }
+
+  function pickCapagoDepartureSelects(section) {
+    const departureWrapper = section.querySelector('.field-wrapper[data-input="departure_date"]');
+    if (!departureWrapper) {
+      return null;
+    }
+
+    const daySelect = departureWrapper.querySelector("select.day");
+    const monthSelect = departureWrapper.querySelector("select.month");
+    const yearSelect = departureWrapper.querySelector("select.year");
 
     if (!(daySelect && monthSelect && yearSelect)) {
       return null;
@@ -1610,6 +1886,39 @@ function cleanTextCapture(value) {
     .replace(/</g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function cleanArabicTextCapture(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeArabicDigits(value) {
+  const easternArabicDigits = {
+    "٠": "0",
+    "١": "1",
+    "٢": "2",
+    "٣": "3",
+    "٤": "4",
+    "٥": "5",
+    "٦": "6",
+    "٧": "7",
+    "٨": "8",
+    "٩": "9",
+    "۰": "0",
+    "۱": "1",
+    "۲": "2",
+    "۳": "3",
+    "۴": "4",
+    "۵": "5",
+    "۶": "6",
+    "۷": "7",
+    "۸": "8",
+    "۹": "9"
+  };
+
+  return String(value || "").replace(/[٠-٩۰-۹]/g, (digit) => easternArabicDigits[digit] || digit);
 }
 
 function normalizeLooseDate(value) {

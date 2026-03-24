@@ -11,7 +11,7 @@ $pdo = db();
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $rows = $pdo->query(
         'SELECT id, source_url, source_label, title, surname, given_names, full_name, passport_number, nationality,
-                issuing_country, birth_date, expiry_date, sex, raw_text, extracted_data, status, created_at
+                issuing_country, birth_date, expiry_date, sex, mobile_phone, email, nb_travellers, formula, raw_text, extracted_data, status, created_at
          FROM passport_submissions
          ORDER BY id DESC
          LIMIT 100'
@@ -44,11 +44,11 @@ $now = gmdate('Y-m-d H:i:s');
 $stmt = $pdo->prepare(
     'INSERT INTO passport_submissions (
         source_url, source_label, title, surname, given_names, full_name, passport_number,
-        nationality, issuing_country, birth_date, expiry_date, sex, mobile_phone, email,
+        nationality, issuing_country, birth_date, expiry_date, sex, mobile_phone, email, nb_travellers, formula,
         status, raw_text, extracted_data, created_at, updated_at
     ) VALUES (
         :source_url, :source_label, :title, :surname, :given_names, :full_name, :passport_number,
-        :nationality, :issuing_country, :birth_date, :expiry_date, :sex, :mobile_phone, :email,
+        :nationality, :issuing_country, :birth_date, :expiry_date, :sex, :mobile_phone, :email, :nb_travellers, :formula,
         :status, :raw_text, :extracted_data, :created_at, :updated_at
     )'
 );
@@ -68,6 +68,8 @@ $stmt->execute([
     ':sex' => $data['sex'] ?? null,
     ':mobile_phone' => $payload['mobile_phone'] ?? null,
     ':email' => $payload['email'] ?? null,
+    ':nb_travellers' => $data['nbTravellers'] ?? null,
+    ':formula' => $data['formula'] ?? null,
     ':status' => $payload['status'] ?? 'received',
     ':raw_text' => $payload['raw_text'] ?? null,
     ':extracted_data' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
@@ -78,7 +80,7 @@ $stmt->execute([
 $id = (int) $pdo->lastInsertId();
 $scheme = (! empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$dashboardUrl = sprintf('%s://%s/index.php', $scheme, $host);
+$dashboardUrl = sprintf('%s://%s/dashboard', $scheme, $host);
 
 jsonResponse([
     'ok' => true,

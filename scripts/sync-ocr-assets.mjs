@@ -43,6 +43,10 @@ const copies = [
     "vendor/tesseract-core/tesseract-core-relaxedsimd-lstm.wasm"
   ],
   [
+    "node_modules/@tesseract.js-data/ara/4.0.0_best_int/ara.traineddata.gz",
+    "vendor/tessdata/4.0.0_best_int/ara.traineddata.gz"
+  ],
+  [
     "node_modules/@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz",
     "vendor/tessdata/4.0.0_best_int/eng.traineddata.gz"
   ],

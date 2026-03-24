@@ -265,6 +265,15 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                         <label>Email
                             <input type="email" name="email">
                         </label>
+                        <label>Nombre de demandeurs
+                            <input name="nbTravellers" type="text" placeholder="1">
+                        </label>
+                        <label>Formule
+                            <select name="formula">
+                                <option value="standard">Demande Standard</option>
+                                <option value="premium">Service Premium</option>
+                            </select>
+                        </label>
                         <label>Civilite
                             <select name="title">
                                 <option value="">Selectionner</option>
@@ -279,6 +288,32 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                                 <option value="">Selectionner</option>
                                 <option value="M">M</option>
                                 <option value="F">F</option>
+                            </select>
+                        </label>
+                        <label>Date de depart
+                            <input type="date" name="departureDate">
+                        </label>
+                        <label>Type de visa demande
+                            <select name="visaStayDuration">
+                                <option value="">Selectionner</option>
+                                <option value="long_stay_visa">Long sejour (&gt; 90 jours)</option>
+                                <option value="short_stay_visa">Court sejour (≤ 90 jours)</option>
+                                <option value="transit_visa">Airport transit</option>
+                            </select>
+                        </label>
+                        <label>Votre projet
+                            <input name="travelPurpose">
+                        </label>
+                        <label>Motif principal du sejour
+                            <input name="typeVisa">
+                        </label>
+                        <label>Categorie du demandeur
+                            <select name="visaFileVariation">
+                                <option value="">Selectionner</option>
+                                <option value="circulation">Circulation</option>
+                                <option value="primo_demand">Primo-demande</option>
+                                <option value="renewal">Voyageur Frequent (renouvellement)</option>
+                                <option value="prof_org">Membre d'une Organisation Professionnelle</option>
                             </select>
                         </label>
                         <label class="full">Texte OCR brut
@@ -327,7 +362,7 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                     <td>${escapeHtml(row.id)}</td>
                     <td><strong>${escapeHtml(row.full_name || '')}</strong><div class="mono">${escapeHtml(row.source_label || row.source_url || '')}</div></td>
                     <td class="mono">${escapeHtml(row.passport_number || '')}</td>
-                    <td>${escapeHtml(row.nationality || '')}</td>
+                    <td>${escapeHtml(row.nationality || '')}<div class="mono">${escapeHtml(row.nb_travellers || '1')} demandeur(s) · ${escapeHtml(row.formula || 'standard')}</div></td>
                     <td><span class="badge">${escapeHtml(row.status || 'received')}</span></td>
                     <td>${escapeHtml(row.created_at || '')}</td>
                 </tr>
@@ -348,7 +383,17 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                 issuingCountry: formData.get('nationality') || '',
                 birthDate: formData.get('birthDate') || '',
                 expiryDate: formData.get('expiryDate') || '',
-                sex: formData.get('sex') || ''
+                sex: formData.get('sex') || '',
+                nbTravellers: formData.get('nbTravellers') || '1',
+                formula: formData.get('formula') || 'standard',
+                mobilePhone: formData.get('mobile_phone') || '',
+                email: formData.get('email') || '',
+                emailConfirm: formData.get('email') || '',
+                departureDate: formData.get('departureDate') || '',
+                visaStayDuration: formData.get('visaStayDuration') || '',
+                travelPurpose: formData.get('travelPurpose') || '',
+                typeVisa: formData.get('typeVisa') || '',
+                visaFileVariation: formData.get('visaFileVariation') || ''
             };
 
             const payload = {

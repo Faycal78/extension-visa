@@ -39,6 +39,8 @@ function db(): PDO
             sex TEXT NULL,
             mobile_phone TEXT NULL,
             email TEXT NULL,
+            nb_travellers TEXT NULL,
+            formula TEXT NULL,
             status TEXT NOT NULL DEFAULT "received",
             raw_text TEXT NULL,
             extracted_data TEXT NULL,
@@ -47,7 +49,22 @@ function db(): PDO
         )'
     );
 
+    ensureColumn($pdo, 'passport_submissions', 'nb_travellers', 'TEXT NULL');
+    ensureColumn($pdo, 'passport_submissions', 'formula', 'TEXT NULL');
+
     return $pdo;
+}
+
+function ensureColumn(PDO $pdo, string $table, string $column, string $definition): void
+{
+    $columns = $pdo->query(sprintf('PRAGMA table_info(%s)', $table))->fetchAll();
+    foreach ($columns as $existing) {
+        if (($existing['name'] ?? null) === $column) {
+            return;
+        }
+    }
+
+    $pdo->exec(sprintf('ALTER TABLE %s ADD COLUMN %s %s', $table, $column, $definition));
 }
 
 function jsonResponse(array $payload, int $status = 200): never
@@ -84,4 +101,3 @@ function normalizeDate(?string $value): ?string
 
     return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) ? $value : null;
 }
-
