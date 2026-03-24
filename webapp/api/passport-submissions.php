@@ -13,8 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'SELECT id, source_url, source_label, title, surname, given_names, full_name, passport_number, nationality,
                 issuing_country, birth_date, expiry_date, sex, mobile_phone, email, nb_travellers, formula, raw_text, extracted_data, status, created_at
          FROM passport_submissions
-         ORDER BY id DESC
-         LIMIT 100'
+         ORDER BY id DESC'
     )->fetchAll();
 
     foreach ($rows as &$row) {
