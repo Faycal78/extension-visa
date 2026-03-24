@@ -226,12 +226,17 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                             <th>Nom</th>
                             <th>Passeport</th>
                             <th>Nationalite</th>
+                            <th>Coordonnees</th>
+                            <th>Visa</th>
+                            <th>Projet</th>
+                            <th>Categorie</th>
                             <th>Statut</th>
                             <th>Date</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="submissions-body">
-                        <tr><td colspan="6" class="muted">Chargement...</td></tr>
+                        <tr><td colspan="11" class="muted">Chargement...</td></tr>
                     </tbody>
                 </table>
             </article>
@@ -341,6 +346,7 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
         const refreshButton = document.getElementById('refresh-button');
         const manualForm = document.getElementById('manual-form');
         const formStatus = document.getElementById('form-status');
+        let dashboardItems = [];
 
         refreshButton.addEventListener('click', loadDashboard);
         manualForm.addEventListener('submit', submitManualForm);
@@ -359,8 +365,9 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
             document.getElementById('stat-email').textContent = statsRes.stats.with_email || 0;
 
             const rows = submissionsRes.items || [];
+            dashboardItems = rows;
             if (!rows.length) {
-                submissionsBody.innerHTML = '<tr><td colspan="6" class="muted">Aucune soumission pour le moment.</td></tr>';
+                submissionsBody.innerHTML = '<tr><td colspan="11" class="muted">Aucune soumission pour le moment.</td></tr>';
                 return;
             }
 
@@ -370,10 +377,19 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                     <td><strong>${escapeHtml(row.full_name || '')}</strong><div class="mono">${escapeHtml(row.source_label || row.source_url || '')}</div></td>
                     <td class="mono">${escapeHtml(row.passport_number || '')}</td>
                     <td>${escapeHtml(row.nationality || '')}<div class="mono">${escapeHtml(row.nb_travellers || '1')} demandeur(s) · ${escapeHtml(row.formula || 'standard')}</div></td>
+                    <td><div>${escapeHtml(row.mobile_phone || '')}</div><div class="mono">${escapeHtml(row.email || '')}</div></td>
+                    <td><div>${escapeHtml(displayVisaStay(row))}</div><div class="mono">${escapeHtml(displayDate(row.birth_date || extracted(row).birthDate || ''))}</div></td>
+                    <td>${escapeHtml(displayTravelPurpose(row))}<div class="mono">${escapeHtml(displayDate(extracted(row).departureDate || ''))}</div></td>
+                    <td>${escapeHtml(displayCategory(row))}<div class="mono">${escapeHtml(extracted(row).typeVisa || '')}</div></td>
                     <td><span class="badge">${escapeHtml(row.status || 'received')}</span></td>
                     <td>${escapeHtml(row.created_at || '')}</td>
+                    <td><button type="button" class="secondary edit-row-button" data-id="${escapeHtml(row.id)}">Modifier</button></td>
                 </tr>
             `).join('');
+
+            document.querySelectorAll('.edit-row-button').forEach((button) => {
+                button.addEventListener('click', () => loadSubmissionIntoForm(button.dataset.id));
+            });
         }
 
         async function submitManualForm(event) {
@@ -430,6 +446,81 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
             manualForm.reset();
             formStatus.textContent = `Enregistre. ID ${result.id}.`;
             await loadDashboard();
+        }
+
+        function loadSubmissionIntoForm(id) {
+            const row = dashboardItems.find((item) => String(item.id) === String(id));
+            if (!row) {
+                formStatus.textContent = 'Fiche introuvable.';
+                return;
+            }
+
+            const data = extracted(row);
+            manualForm.elements.surname.value = data.surname || row.surname || '';
+            manualForm.elements.givenNames.value = data.givenNames || row.given_names || '';
+            manualForm.elements.passportNumber.value = data.passportNumber || row.passport_number || '';
+            manualForm.elements.nationality.value = data.nationality || row.nationality || '';
+            manualForm.elements.birthDate.value = data.birthDate || row.birth_date || '';
+            manualForm.elements.expiryDate.value = data.expiryDate || row.expiry_date || '';
+            manualForm.elements.mobile_phone.value = data.mobilePhone || row.mobile_phone || '';
+            manualForm.elements.email.value = data.email || row.email || '';
+            manualForm.elements.nbTravellers.value = data.nbTravellers || row.nb_travellers || '1';
+            manualForm.elements.formula.value = data.formula || row.formula || 'standard';
+            manualForm.elements.title.value = data.title || row.title || '';
+            manualForm.elements.sex.value = data.sex || row.sex || '';
+            manualForm.elements.departureDate.value = data.departureDate || '';
+            manualForm.elements.visaStayDuration.value = data.visaStayDuration || 'short_stay_visa';
+            manualForm.elements.travelPurpose.value = data.travelPurpose || '';
+            manualForm.elements.typeVisa.value = data.typeVisa || '';
+            manualForm.elements.visaFileVariation.value = data.visaFileVariation || '';
+            manualForm.elements.raw_text.value = row.raw_text || '';
+            formStatus.textContent = `Fiche ${row.id} chargee dans le formulaire. Modifiez puis enregistrez.`;
+            manualForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function extracted(row) {
+            return row.extracted_data && typeof row.extracted_data === 'object' ? row.extracted_data : {};
+        }
+
+        function displayVisaStay(row) {
+            const value = extracted(row).visaStayDuration || '';
+            if (value === 'short_stay_visa') return 'Court sejour';
+            if (value === 'long_stay_visa') return 'Long sejour';
+            if (value === 'transit_visa') return 'Airport transit';
+            return value;
+        }
+
+        function displayTravelPurpose(row) {
+            const value = extracted(row).travelPurpose || '';
+            const labels = {
+                etablissement_familial_prive: 'Etablissement familial ou prive',
+                raisons_medicales: 'Raisons medicales',
+                tourisme: 'Tourisme',
+                travailler: 'Travailler',
+                visite_familiale_privee: 'Visite familiale ou privee',
+                etudes: 'Etudes'
+            };
+
+            return labels[value] || value;
+        }
+
+        function displayCategory(row) {
+            const value = extracted(row).visaFileVariation || '';
+            const labels = {
+                circulation: 'Circulation',
+                primo_demand: 'Primo-demande',
+                renewal: 'Voyageur Frequent',
+                prof_org: 'Organisation Professionnelle'
+            };
+
+            return labels[value] || value;
+        }
+
+        function displayDate(value) {
+            if (!value) return '';
+            if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return value;
+            const [year, month, day] = value.split('-');
+            return `${day}/${month}/${year}`;
         }
 
         function escapeHtml(value) {
