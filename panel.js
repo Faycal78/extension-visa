@@ -1386,6 +1386,7 @@ function fillPassportFieldsOnPage(passportData) {
       }
       if (normalizedValue.includes("installation familiale") || normalizedValue.includes("majeur")) {
         candidates.push(
+          "family",
           "installation_familiale_privee_majeur",
           "installation familiale ou privee (majeur)",
           "installation familiale ou privee majeur"
@@ -1393,19 +1394,26 @@ function fillPassportFieldsOnPage(passportData) {
       }
       if (normalizedValue.includes("mineur")) {
         candidates.push(
+          "family_minor",
           "installation_familiale_privee_mineur",
           "installation familiale ou privee (mineur)",
           "installation familiale ou privee mineur"
         );
       }
       if (normalizedValue.includes("stage")) {
-        candidates.push("stage_salarie", "stage salarie");
+        candidates.push("placement", "stage_salarie", "stage salarie");
+      }
+      if (normalizedValue.includes("travailler") || normalizedValue === "work") {
+        candidates.push("work", "travailler");
       }
       if (normalizedValue.includes("retour")) {
-        candidates.push("visa_de_retour", "visa de retour");
+        candidates.push("return", "visa_de_retour", "visa de retour");
       }
-      if (normalizedValue.includes("visiteur")) {
-        candidates.push("visiteur", "visiteur");
+      if (normalizedValue.includes("visiteur") || normalizedValue === "visitor") {
+        candidates.push("visitor", "visiteur", "visiteur");
+      }
+      if (normalizedValue.includes("etudes") || normalizedValue.includes("etudiant") || normalizedValue === "study") {
+        candidates.push("study", "etudes", "etudiant");
       }
       if (normalizedValue.includes("airport transit")) {
         candidates.push("airport_transit", "airport transit");

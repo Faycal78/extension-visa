@@ -365,13 +365,13 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                 ['etudes', 'Etudes']
             ],
             long_stay_visa: [
-                ['installation_familiale_privee_majeur', 'Installation familiale ou privee (majeur)'],
-                ['installation_familiale_privee_mineur', 'Installation familiale ou privee (mineur)'],
-                ['stage_salarie', 'Stage salarie'],
-                ['travailler', 'Travailler'],
-                ['visa_de_retour', 'Visa de retour'],
-                ['visiteur', 'Visiteur'],
-                ['etudes', 'Etudes']
+                ['family', 'Installation familiale ou privee (majeur)'],
+                ['family_minor', 'Installation familiale ou privee (mineur)'],
+                ['placement', 'Stage salarie'],
+                ['work', 'Travailler'],
+                ['return', 'Visa de retour'],
+                ['visitor', 'Visiteur'],
+                ['study', 'Etudes']
             ],
             transit_visa: [
                 ['airport_transit', 'Airport transit']
@@ -586,11 +586,13 @@ $isDashboard = in_array($normalizedPath, ['/dashboard', '/index.php/dashboard'],
                 travailler: 'Travailler',
                 visite_familiale_privee: 'Visite familiale ou privee',
                 etudes: 'Etudes',
-                installation_familiale_privee_majeur: 'Installation familiale ou privee (majeur)',
-                installation_familiale_privee_mineur: 'Installation familiale ou privee (mineur)',
-                stage_salarie: 'Stage salarie',
-                visa_de_retour: 'Visa de retour',
-                visiteur: 'Visiteur',
+                family: 'Installation familiale ou privee (majeur)',
+                family_minor: 'Installation familiale ou privee (mineur)',
+                placement: 'Stage salarie',
+                work: 'Travailler',
+                return: 'Visa de retour',
+                visitor: 'Visiteur',
+                study: 'Etudes',
                 airport_transit: 'Airport transit'
             };
 
