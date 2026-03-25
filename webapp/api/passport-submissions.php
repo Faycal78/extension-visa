@@ -19,6 +19,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     foreach ($rows as &$row) {
         $decoded = json_decode((string) ($row['extracted_data'] ?? ''), true);
         $row['extracted_data'] = is_array($decoded) ? $decoded : [];
+
+        if (($row['mobile_phone'] ?? '') !== '' && empty($row['extracted_data']['mobilePhone'])) {
+            $row['extracted_data']['mobilePhone'] = $row['mobile_phone'];
+        }
+
+        if (($row['email'] ?? '') !== '' && empty($row['extracted_data']['email'])) {
+            $row['extracted_data']['email'] = $row['email'];
+        }
+
+        if (($row['email'] ?? '') !== '' && empty($row['extracted_data']['emailConfirm'])) {
+            $row['extracted_data']['emailConfirm'] = $row['email'];
+        }
     }
     unset($row);
 
@@ -37,6 +49,21 @@ $data = $payload['extracted_data'] ?? [];
 
 if (! is_array($data)) {
     jsonResponse(['ok' => false, 'message' => 'Invalid payload'], 422);
+}
+
+$mobilePhone = trim((string) ($payload['mobile_phone'] ?? $data['mobilePhone'] ?? ''));
+$email = trim((string) ($payload['email'] ?? $data['email'] ?? ''));
+
+if ($mobilePhone !== '' && empty($data['mobilePhone'])) {
+    $data['mobilePhone'] = $mobilePhone;
+}
+
+if ($email !== '' && empty($data['email'])) {
+    $data['email'] = $email;
+}
+
+if ($email !== '' && empty($data['emailConfirm'])) {
+    $data['emailConfirm'] = $email;
 }
 
 $now = gmdate('Y-m-d H:i:s');
@@ -65,8 +92,8 @@ $stmt->execute([
     ':birth_date' => normalizeDate($data['birthDate'] ?? null),
     ':expiry_date' => normalizeDate($data['expiryDate'] ?? null),
     ':sex' => $data['sex'] ?? null,
-    ':mobile_phone' => $payload['mobile_phone'] ?? null,
-    ':email' => $payload['email'] ?? null,
+    ':mobile_phone' => $mobilePhone !== '' ? $mobilePhone : null,
+    ':email' => $email !== '' ? $email : null,
     ':nb_travellers' => $data['nbTravellers'] ?? null,
     ':formula' => $data['formula'] ?? null,
     ':status' => $payload['status'] ?? 'received',

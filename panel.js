@@ -13,8 +13,10 @@ const syncButton = document.getElementById("sync-button");
 const copyButton = document.getElementById("copy-button");
 const fileInput = document.getElementById("file-input");
 const fieldsResultEl = document.getElementById("fields-result");
+const autofillLogEl = document.getElementById("autofill-log");
 const backendUrlInput = document.getElementById("backend-url");
 const backendStatusEl = document.getElementById("backend-status");
+const dashboardSearchInput = document.getElementById("dashboard-search");
 const dashboardRecordsSelect = document.getElementById("dashboard-records");
 const loadRecordButton = document.getElementById("load-record-button");
 const { createWorker } = globalThis.Tesseract;
@@ -214,6 +216,7 @@ let workerPromise = null;
 let activeWorkerLanguage = "";
 let isBusy = false;
 let dashboardRecords = [];
+let filteredDashboardRecords = [];
 
 initializePopup();
 captureButton.addEventListener("click", captureActiveTab);
@@ -226,7 +229,9 @@ languageSelect.addEventListener("change", handleLanguageChange);
 backendUrlInput.addEventListener("change", persistBackendUrl);
 backendUrlInput.addEventListener("change", loadDashboardRecords);
 loadRecordButton.addEventListener("click", loadSelectedDashboardRecord);
+dashboardSearchInput.addEventListener("input", handleDashboardSearch);
 dashboardRecordsSelect.addEventListener("change", () => {
+  loadRecordButton.disabled = !dashboardRecordsSelect.value;
   if (dashboardRecordsSelect.value) {
     loadSelectedDashboardRecord();
   }
@@ -389,6 +394,7 @@ async function copyTextResult() {
 async function autofillActiveTab() {
   if (!hasPassportAutofillData(latestPassportData)) {
     setStatus("Aucune donnee passeport exploitable a injecter.");
+    setAutofillLog("Aucune donnee exploitable pour lancer le pre-remplissage.");
     return;
   }
 
@@ -404,12 +410,15 @@ async function autofillActiveTab() {
     }
 
     setStatus("Injection des champs dans le site actif...");
+    setAutofillLog("Injection en cours sur Capago...");
 
     const [{ result }] = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: fillPassportFieldsOnPage,
       args: [buildAutofillPayload(latestPassportData)]
     });
+
+    setAutofillLog(formatAutofillLog(result));
 
     if (!result?.filledCount) {
       setStatus("Aucun champ correspondant n'a ete trouve sur la page.");
@@ -664,7 +673,35 @@ function resetResult() {
   resultEl.classList.add("empty");
   fieldsResultEl.textContent = "Aucun champ detecte pour le moment.";
   fieldsResultEl.classList.add("empty");
+  setAutofillLog("Aucun remplissage lance pour le moment.");
   setBackendStatus("Entrez l'URL racine du dashboard web, puis utilisez `Envoyer au backend`.");
+}
+
+function setAutofillLog(message) {
+  if (!autofillLogEl) {
+    return;
+  }
+
+  autofillLogEl.textContent = message || "Aucun remplissage lance pour le moment.";
+  autofillLogEl.classList.toggle("empty", !message || message === "Aucun remplissage lance pour le moment.");
+}
+
+function formatAutofillLog(result) {
+  const lines = [];
+
+  if (Array.isArray(result?.logs) && result.logs.length) {
+    lines.push(...result.logs);
+  }
+
+  if (Array.isArray(result?.filledKeys) && result.filledKeys.length) {
+    lines.push(`Champs remplis: ${result.filledKeys.join(", ")}`);
+  }
+
+  if (typeof result?.filledCount === "number") {
+    lines.push(`Total rempli: ${result.filledCount}`);
+  }
+
+  return lines.filter(Boolean).join("\n") || "Aucune information de remplissage recueillie.";
 }
 
 function handleError(error, fallbackMessage) {
@@ -726,20 +763,22 @@ async function loadDashboardRecords() {
 
     const result = await response.json();
     dashboardRecords = Array.isArray(result.items) ? result.items : [];
+    filteredDashboardRecords = filterDashboardRecords(dashboardSearchInput.value);
     renderDashboardRecords();
     setBackendStatus(`Dashboard connecte. ${dashboardRecords.length} fiche(s) chargee(s).`);
-    if (dashboardRecords.length) {
-      dashboardRecordsSelect.value = String(dashboardRecords[0].id);
+    if (filteredDashboardRecords.length) {
+      dashboardRecordsSelect.value = String(filteredDashboardRecords[0].id);
       loadSelectedDashboardRecord();
     }
   } catch (error) {
     dashboardRecords = [];
+    filteredDashboardRecords = [];
     renderDashboardRecords();
     const message = error instanceof Error ? error.message : "Erreur reseau.";
     setBackendStatus(`Connexion dashboard impossible: ${message}`);
   } finally {
     dashboardRecordsSelect.disabled = false;
-    loadRecordButton.disabled = !dashboardRecords.length;
+    loadRecordButton.disabled = !filteredDashboardRecords.length;
   }
 }
 
@@ -748,17 +787,21 @@ function renderDashboardRecords() {
 
   const placeholder = document.createElement("option");
   placeholder.value = "";
-  placeholder.textContent = dashboardRecords.length
+  placeholder.textContent = filteredDashboardRecords.length
     ? "Choisir une fiche enregistree"
-    : "Aucune fiche disponible";
+    : dashboardRecords.length
+      ? "Aucun resultat pour cette recherche"
+      : "Aucune fiche disponible";
   dashboardRecordsSelect.appendChild(placeholder);
 
-  dashboardRecords.forEach((record) => {
+  filteredDashboardRecords.forEach((record) => {
     const option = document.createElement("option");
     option.value = String(record.id);
     option.textContent = `#${record.id} | ${record.full_name || "Sans nom"} | ${record.passport_number || "Sans passeport"} | ${record.created_at || ""}`;
     dashboardRecordsSelect.appendChild(option);
   });
+
+  loadRecordButton.disabled = !filteredDashboardRecords.length || !dashboardRecordsSelect.value;
 }
 
 function loadSelectedDashboardRecord() {
@@ -771,6 +814,7 @@ function loadSelectedDashboardRecord() {
   }
 
   const extracted = normalizeRecordToPassportData(record);
+  loadRecordButton.disabled = false;
   latestText = record.raw_text || buildRecordSummary(extracted);
   latestPassportData = extracted;
   resultEl.textContent = latestText || "Fiche chargee depuis le dashboard.";
@@ -781,6 +825,56 @@ function loadSelectedDashboardRecord() {
   syncButton.disabled = !hasPassportAutofillData(extracted);
   setBackendStatus(`Fiche ${record.id} chargee depuis le dashboard.`);
   setStatus("Fiche dashboard prete pour le pre-remplissage.");
+}
+
+function handleDashboardSearch() {
+  filteredDashboardRecords = filterDashboardRecords(dashboardSearchInput.value);
+  renderDashboardRecords();
+
+  if (filteredDashboardRecords.length === 1) {
+    dashboardRecordsSelect.value = String(filteredDashboardRecords[0].id);
+    loadSelectedDashboardRecord();
+    return;
+  }
+
+  if (!filteredDashboardRecords.length) {
+    setBackendStatus("Aucune fiche ne correspond a ce nom ou prenom.");
+    return;
+  }
+
+  setBackendStatus(`${filteredDashboardRecords.length} fiche(s) correspondent a la recherche.`);
+}
+
+function filterDashboardRecords(query) {
+  const normalizedQuery = normalizeSearchText(query);
+
+  if (!normalizedQuery) {
+    return [...dashboardRecords];
+  }
+
+  return dashboardRecords.filter((record) => {
+    const haystack = normalizeSearchText([
+      record.full_name,
+      record.surname,
+      record.given_names,
+      record.passport_number,
+      record.email,
+      record.extracted_data?.fullName,
+      record.extracted_data?.surname,
+      record.extracted_data?.givenNames
+    ].filter(Boolean).join(" "));
+
+    return haystack.includes(normalizedQuery);
+  });
+}
+
+function normalizeSearchText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 function normalizeRecordToPassportData(record) {
@@ -871,6 +965,96 @@ function formatVisaChecklistLabel(value) {
 
 function formatVisaFileVariationLabel(value) {
   return VISA_FILE_VARIATION_LABEL_MAP[value] || value || "";
+}
+
+function normalizeMatchValue(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function resolveMappedKey(value, map) {
+  const rawValue = String(value || "").trim();
+  if (!rawValue) {
+    return "";
+  }
+
+  if (Object.prototype.hasOwnProperty.call(map, rawValue)) {
+    return rawValue;
+  }
+
+  const wanted = normalizeMatchValue(rawValue);
+  for (const [key, label] of Object.entries(map)) {
+    const normalizedKey = normalizeMatchValue(key);
+    const normalizedLabel = normalizeMatchValue(label);
+    if (
+      wanted === normalizedKey ||
+      wanted === normalizedLabel ||
+      normalizedLabel.includes(wanted) ||
+      wanted.includes(normalizedLabel)
+    ) {
+      return key;
+    }
+  }
+
+  return rawValue;
+}
+
+function resolveVisaStayDuration(value) {
+  return resolveMappedKey(value, VISA_STAY_DURATION_LABEL_MAP);
+}
+
+function resolveTravelPurpose(value, visaStayDuration) {
+  const rawValue = String(value || "").trim();
+  if (!rawValue) {
+    return "";
+  }
+
+  const normalizedVisaStayDuration = resolveVisaStayDuration(visaStayDuration);
+  const normalizedValue = normalizeMatchValue(rawValue);
+  const groups = normalizedVisaStayDuration
+    ? [[normalizedVisaStayDuration, TRAVEL_PURPOSE_LABELS_BY_VISA[normalizedVisaStayDuration] || {}]]
+    : Object.entries(TRAVEL_PURPOSE_LABELS_BY_VISA);
+
+  for (const [, purposeMap] of groups) {
+    if (Object.prototype.hasOwnProperty.call(purposeMap, rawValue)) {
+      return rawValue;
+    }
+
+    for (const [key, label] of Object.entries(purposeMap)) {
+      const normalizedKey = normalizeMatchValue(key);
+      const normalizedLabel = normalizeMatchValue(label);
+      if (
+        normalizedValue === normalizedKey ||
+        normalizedValue === normalizedLabel ||
+        normalizedLabel.includes(normalizedValue) ||
+        normalizedValue.includes(normalizedLabel)
+      ) {
+        return key;
+      }
+    }
+  }
+
+  return rawValue;
+}
+
+function resolveTypeVisa(value) {
+  return resolveMappedKey(value, TYPE_VISA_LABEL_MAP);
+}
+
+function resolveVisaVariation(value) {
+  return resolveMappedKey(value, VISA_VARIATION_LABEL_MAP);
+}
+
+function resolveVisaChecklist(value) {
+  return resolveMappedKey(value, VISA_CHECKLIST_LABEL_MAP);
+}
+
+function resolveVisaFileVariation(value) {
+  return resolveMappedKey(value, VISA_FILE_VARIATION_LABEL_MAP);
 }
 
 function buildSubmissionEndpoint(baseUrl) {
@@ -1123,6 +1307,13 @@ function hasPassportAutofillData(data) {
 }
 
 function buildAutofillPayload(data) {
+  const visaStayDuration = resolveVisaStayDuration(data.visaStayDuration || "");
+  const travelPurpose = resolveTravelPurpose(data.travelPurpose || "", visaStayDuration);
+  const typeVisa = resolveTypeVisa(data.typeVisa || "");
+  const visaVariation = resolveVisaVariation(data.visaVariation || "");
+  const visaChecklist = resolveVisaChecklist(data.visaChecklist || "");
+  const visaFileVariation = resolveVisaFileVariation(data.visaFileVariation || "");
+
   return {
     surname: data.surname || "",
     givenNames: data.givenNames || "",
@@ -1149,12 +1340,12 @@ function buildAutofillPayload(data) {
     departureDay: data.departureDay || "",
     departureMonth: data.departureMonth || "",
     departureYear: data.departureYear || "",
-    visaStayDuration: data.visaStayDuration || "",
-    travelPurpose: data.travelPurpose || "",
-    typeVisa: data.typeVisa || "",
-    visaVariation: data.visaVariation || "",
-    visaChecklist: data.visaChecklist || "",
-    visaFileVariation: data.visaFileVariation || "",
+    visaStayDuration,
+    travelPurpose,
+    typeVisa,
+    visaVariation,
+    visaChecklist,
+    visaFileVariation,
     sex: data.sex || "",
     nbTravellers: data.nbTravellers || "1",
     formula: data.formula || "standard"
@@ -1237,11 +1428,13 @@ async function fillPassportFieldsOnPage(passportData) {
   const used = new Set();
   let filledCount = 0;
   const filledKeys = [];
+  const logs = [];
 
   const capagoResult = await fillCapagoKnownLayout();
   capagoResult.usedElements.forEach((element) => used.add(element));
   filledCount += capagoResult.filledCount;
   filledKeys.push(...capagoResult.filledKeys);
+  logs.push(...(capagoResult.logs || []));
 
   filledCount += fillGroupedDateFields(
     passportData.birthDay,
@@ -1469,7 +1662,7 @@ async function fillPassportFieldsOnPage(passportData) {
     }
   }
 
-  return { filledCount, filledKeys };
+  return { filledCount, filledKeys, logs };
 
   function pickBestElement(spec) {
     let bestElement = null;
@@ -1575,6 +1768,7 @@ async function fillPassportFieldsOnPage(passportData) {
     element.value = option.value;
     element.setAttribute("value", option.value);
     syncSelectricUi(element, option);
+    forceSelectricOptionActivation(element, option);
     dispatchSelectEvents(element);
     return element.value === option.value || element.selectedIndex >= 0;
   }
@@ -1765,8 +1959,38 @@ async function fillPassportFieldsOnPage(passportData) {
       ];
 
       for (const [id, label] of knownTypeVisas) {
-        const normalizedId = normalizeText(id);
-        const normalizedLabel = normalizeText(label);
+        const normalizedId = normalized(id);
+        const normalizedLabel = normalized(label);
+        if (
+          normalizedValue === normalizedId ||
+          normalizedValue === normalizedLabel ||
+          normalizedLabel.includes(normalizedValue) ||
+          normalizedValue.includes(normalizedLabel)
+        ) {
+          candidates.push(id, label);
+        }
+      }
+    }
+
+    if (key === "visaVariation") {
+      for (const [id, label] of Object.entries(VISA_VARIATION_LABEL_MAP)) {
+        const normalizedId = normalized(id);
+        const normalizedLabel = normalized(label);
+        if (
+          normalizedValue === normalizedId ||
+          normalizedValue === normalizedLabel ||
+          normalizedLabel.includes(normalizedValue) ||
+          normalizedValue.includes(normalizedLabel)
+        ) {
+          candidates.push(id, label);
+        }
+      }
+    }
+
+    if (key === "visaChecklist") {
+      for (const [id, label] of Object.entries(VISA_CHECKLIST_LABEL_MAP)) {
+        const normalizedId = normalized(id);
+        const normalizedLabel = normalized(label);
         if (
           normalizedValue === normalizedId ||
           normalizedValue === normalizedLabel ||
@@ -1820,17 +2044,19 @@ async function fillPassportFieldsOnPage(passportData) {
 
   async function fillCapagoKnownLayout() {
     if (!/capago\.eu$/i.test(window.location.hostname)) {
-      return { filledCount: 0, filledKeys: [], usedElements: [] };
+      return { filledCount: 0, filledKeys: [], usedElements: [], logs: [] };
     }
 
     const section = findCapagoApplicantSection();
     if (!section) {
-      return { filledCount: 0, filledKeys: [], usedElements: [] };
+      return { filledCount: 0, filledKeys: [], usedElements: [], logs: ["Capago: bloc demandeur 1 introuvable."] };
     }
 
     const localUsed = [];
     const localKeys = [];
+    const localLogs = [];
     let localCount = 0;
+    const logCapago = (message) => localLogs.push(message);
 
     const visibleSelects = Array.from(section.querySelectorAll("select")).filter(isVisibleElement);
     const visibleInputs = Array.from(section.querySelectorAll("input, textarea"))
@@ -1843,6 +2069,24 @@ async function fillPassportFieldsOnPage(passportData) {
         const blockedTypes = new Set(["hidden", "file", "password", "submit", "button", "reset", "image", "checkbox", "radio"]);
         return !blockedTypes.has(element.type);
       });
+    const getVisaStayDurationSelect = () =>
+      pickCapagoSelect('visa_stay_duration', 'visa_stay_duration_traveller_1') ||
+      pickFieldInSection(section, "select", ["type de visa demande", "duree de sejour"]);
+    const getTravelPurposeSelect = () =>
+      pickCapagoSelect('travel_purpose', 'travel_purpose_traveller_1') ||
+      pickFieldInSection(section, "select", ["votre projet", "travel purpose"]);
+    const getTypeVisaSelect = () =>
+      pickCapagoSelect('type', 'type_visa_traveller_1') ||
+      pickFieldInSection(section, "select", ["motif principal du sejour", "motif principal", "type visa"]);
+    const getVisaVariationSelect = () =>
+      pickCapagoSelect('precision1', 'precision1_traveller_1') ||
+      pickFieldInSection(section, "select", ["variation de visa", "precision1"]);
+    const getVisaChecklistSelect = () =>
+      pickCapagoSelect('precision2', 'precision2_traveller_1') ||
+      pickFieldInSection(section, "select", ["situation du demandeur", "precision2"]);
+    const getVisaFileVariationSelect = () =>
+      pickCapagoSelect('visa-file-variation', 'visa_file_variation_traveller_1') ||
+      pickFieldInSection(section, "select", ["categorie du demandeur", "visa file variation"]);
 
     const titleSelect =
       section.querySelector('.field-wrapper[data-input="title"] select') ||
@@ -1871,12 +2115,7 @@ async function fillPassportFieldsOnPage(passportData) {
       pickDateSelectsInSection(section, ["date de naissance", "naissance"]) ||
       visibleSelects.slice(1, 4);
     const departureSelects = pickCapagoDepartureSelects(section);
-    const visaStayDurationSelect = section.querySelector("#visa_stay_duration_traveller_1");
-    const travelPurposeSelect = section.querySelector("#travel_purpose_traveller_1");
-    const typeVisaSelect = section.querySelector("#type_visa_traveller_1");
-    const visaVariationSelect = section.querySelector("#precision1_traveller_1");
-    const visaChecklistSelect = section.querySelector("#precision2_traveller_1");
-    const visaFileVariationSelect = section.querySelector("#visa_file_variation_traveller_1");
+    const visaStayDurationSelect = getVisaStayDurationSelect();
     const standardRadio = section.querySelector('input[type="radio"][name="formula"][value="standard"]');
     const premiumRadio = section.querySelector('input[type="radio"][name="formula"][value="premium"]');
 
@@ -1914,45 +2153,70 @@ async function fillPassportFieldsOnPage(passportData) {
     }
 
     localCount += await assignCapagoSelectAsync(
-      () => section.querySelector("#visa_stay_duration_traveller_1"),
+      getVisaStayDurationSelect,
       "visaStayDuration",
       passportData.visaStayDuration,
-      "visaStayDuration"
+      "visaStayDuration",
+      { requireMatch: true, timeoutMs: 9000, afterMs: 450 }
     );
     localCount += await assignCapagoSelectAsync(
-      () => section.querySelector("#travel_purpose_traveller_1"),
+      getTravelPurposeSelect,
       "travelPurpose",
       passportData.travelPurpose,
       "travelPurpose",
-      { requireOptions: true }
+      { requireOptions: true, requireMatch: true, timeoutMs: 9000, afterMs: 650 }
     );
     localCount += await assignCapagoSelectAsync(
-      () => section.querySelector("#type_visa_traveller_1"),
+      getTypeVisaSelect,
       "typeVisa",
       passportData.typeVisa,
       "typeVisa",
-      { requireOptions: true }
+      { requireOptions: true, requireMatch: true, timeoutMs: 9000, afterMs: 650 }
     );
+    await ensureCapagoDependentSelects();
     localCount += await assignCapagoSelectAsync(
-      () => section.querySelector("#precision1_traveller_1"),
+      getVisaVariationSelect,
       "visaVariation",
       passportData.visaVariation,
       "visaVariation",
-      { requireOptions: true }
+      { requireOptions: true, requireMatch: true, timeoutMs: 12000, afterMs: 900 }
+    );
+    await stabilizeCapagoSelect(
+      getVisaVariationSelect,
+      "visaVariation",
+      passportData.visaVariation,
+      ensureVisaVariationAndChecklistSelects,
+      "visaVariation",
+      12000
     );
     localCount += await assignCapagoSelectAsync(
-      () => section.querySelector("#precision2_traveller_1"),
+      getVisaChecklistSelect,
       "visaChecklist",
       passportData.visaChecklist,
       "visaChecklist",
-      { requireOptions: true }
+      { requireOptions: true, requireMatch: true, timeoutMs: 9000, afterMs: 650 }
+    );
+    await stabilizeCapagoSelect(
+      getVisaChecklistSelect,
+      "visaChecklist",
+      passportData.visaChecklist,
+      ensureVisaChecklistSelectOnly,
+      "visaChecklist"
     );
     localCount += await assignCapagoSelectAsync(
-      () => section.querySelector("#visa_file_variation_traveller_1"),
+      getVisaFileVariationSelect,
       "visaFileVariation",
       passportData.visaFileVariation,
       "visaFileVariation",
-      { requireOptions: true, timeoutMs: 3000 }
+      { requireOptions: true, requireMatch: true, timeoutMs: 9000, afterMs: 400 }
+    );
+    await stabilizeCapagoSelect(
+      getVisaFileVariationSelect,
+      "visaFileVariation",
+      passportData.visaFileVariation,
+      ensureVisaFileVariationSelect,
+      "visaFileVariation",
+      12000
     );
 
     scheduleDependentSelectRetries();
@@ -1961,7 +2225,8 @@ async function fillPassportFieldsOnPage(passportData) {
     return {
       filledCount: localCount,
       filledKeys: [...new Set(localKeys)],
-      usedElements: localUsed
+      usedElements: localUsed,
+      logs: localLogs
     };
 
     function assignIfPresent(element, key, value, filledKey) {
@@ -1980,29 +2245,37 @@ async function fillPassportFieldsOnPage(passportData) {
 
     async function assignCapagoSelectAsync(getElement, key, value, filledKey, options = {}) {
       if (!value) {
+        logCapago(`${filledKey}: aucune valeur source.`);
         return 0;
       }
 
-      const { requireOptions = false, timeoutMs = 7000 } = options;
+      const { requireOptions = false, requireMatch = false, timeoutMs = 7000, afterMs = 180 } = options;
       const element = await waitFor(
         getElement,
         (candidate) =>
           candidate instanceof HTMLSelectElement &&
-          (!requireOptions || candidate.options.length > 1),
+          (!requireOptions || candidate.options.length > 1) &&
+          (!requireMatch || Boolean(pickSelectOption(candidate, key, value))),
         timeoutMs
       );
 
       if (!element) {
+        const lastElement = getElement();
+        logCapago(`${filledKey}: option introuvable pour "${value}". ${describeSelectOptions(lastElement)}`);
         return 0;
       }
 
       if (!applyValue(element, key, value)) {
+        logCapago(`${filledKey}: echec pour "${value}". ${describeSelectOptions(element)}`);
         return 0;
       }
 
       localUsed.push(element);
       localKeys.push(filledKey);
-      await sleep(180);
+      logCapago(
+        `${filledKey}: ${element.selectedOptions?.[0]?.textContent?.trim() || element.value || value}`
+      );
+      await sleep(afterMs);
       return 1;
     }
 
@@ -2017,6 +2290,7 @@ async function fillPassportFieldsOnPage(passportData) {
       );
 
       if (!group) {
+        logCapago(`${filledKey}: groupe introuvable.`);
         return 0;
       }
 
@@ -2030,27 +2304,29 @@ async function fillPassportFieldsOnPage(passportData) {
 
       if (count) {
         localKeys.push(filledKey);
+        logCapago(`${filledKey}: ${values.join("/")}`);
         return count;
       }
 
+      logCapago(`${filledKey}: echec pour ${values.join("/")}.`);
       return 0;
     }
 
     function scheduleDependentSelectRetries() {
       const sequence = [
-        [() => section.querySelector("#visa_stay_duration_traveller_1"), "visaStayDuration", passportData.visaStayDuration],
-        [() => section.querySelector("#travel_purpose_traveller_1"), "travelPurpose", passportData.travelPurpose],
-        [() => section.querySelector("#type_visa_traveller_1"), "typeVisa", passportData.typeVisa],
-        [() => section.querySelector("#precision1_traveller_1"), "visaVariation", passportData.visaVariation],
-        [() => section.querySelector("#precision2_traveller_1"), "visaChecklist", passportData.visaChecklist],
-        [() => section.querySelector("#visa_file_variation_traveller_1"), "visaFileVariation", passportData.visaFileVariation]
+        [getVisaStayDurationSelect, "visaStayDuration", passportData.visaStayDuration],
+        [getTravelPurposeSelect, "travelPurpose", passportData.travelPurpose],
+        [getTypeVisaSelect, "typeVisa", passportData.typeVisa],
+        [getVisaVariationSelect, "visaVariation", passportData.visaVariation],
+        [getVisaChecklistSelect, "visaChecklist", passportData.visaChecklist],
+        [getVisaFileVariationSelect, "visaFileVariation", passportData.visaFileVariation]
       ].filter(([, , value]) => Boolean(value));
 
       if (!sequence.length) {
         return;
       }
 
-      [250, 800, 1600, 2800, 4200, 6000].forEach((delay) => {
+      [250, 800, 1600, 2800, 4200, 6000, 8000, 10000, 12000].forEach((delay) => {
         window.setTimeout(() => {
           sequence.forEach(([getElement, key, value]) => {
             const element = getElement();
@@ -2066,6 +2342,315 @@ async function fillPassportFieldsOnPage(passportData) {
           });
         }, delay);
       });
+    }
+
+    async function ensureCapagoDependentSelects() {
+      await ensureVisaVariationAndChecklistSelects();
+      await ensureVisaFileVariationSelect();
+    }
+
+    async function ensureVisaVariationAndChecklistSelects() {
+      if (!passportData.typeVisa) {
+        return;
+      }
+
+      try {
+        const nativeVariationSelect = await waitFor(
+          getVisaVariationSelect,
+          (candidate) =>
+            candidate instanceof HTMLSelectElement &&
+            candidate.options.length > 1 &&
+            Boolean(pickSelectOption(candidate, "visaVariation", passportData.visaVariation || "1")),
+          1800,
+          120
+        );
+
+        if (nativeVariationSelect) {
+          cleanupCapagoFallbackSelects('precision1');
+          cleanupCapagoFallbackSelects('precision2');
+          logCapago("visaVariation: select natif Capago detecte.");
+          return;
+        }
+
+        const data = await fetchCapagoVisaTypeData();
+        const visaTypeList = Array.isArray(data?.visa_type_list) ? data.visa_type_list : [];
+        const visaType = visaTypeList.find((item) => String(item.resource_id) === String(passportData.typeVisa));
+
+        if (!visaType) {
+          logCapago(`visaVariation: type ${passportData.typeVisa} absent du referentiel Capago.`);
+          return;
+        }
+
+        upsertCapagoSelect(
+          'precision1',
+          `precision1_traveller_${getCapagoTravellerIndex(section)}`,
+          Array.isArray(visaType.visa_variation_list)
+            ? visaType.visa_variation_list.map((item) => ({
+                value: item.visa_variation_id,
+                label: item.visa_variation_name
+              }))
+            : [],
+          '--'
+        );
+
+        const matchedVariation =
+          Array.isArray(visaType.visa_variation_list)
+            ? visaType.visa_variation_list.find((item) =>
+                normalizedOptionCandidates("visaVariation", passportData.visaVariation).some((candidate) => {
+                  const value = normalized(item.visa_variation_id);
+                  const label = normalized(item.visa_variation_name);
+                  return candidate === value || candidate === label || label.includes(candidate);
+                })
+              )
+            : null;
+
+        if (!matchedVariation) {
+          logCapago(`visaVariation: variation ${passportData.visaVariation} absente du type ${passportData.typeVisa}.`);
+          return;
+        }
+
+        upsertCapagoSelect(
+          'precision2',
+          `precision2_traveller_${getCapagoTravellerIndex(section)}`,
+          Array.isArray(matchedVariation.validation_checklist_list)
+            ? matchedVariation.validation_checklist_list.map((item) => ({
+                value: item.validation_checklist_id,
+                label: item.validation_checklist_name
+              }))
+            : [],
+          '--'
+        );
+        logCapago("visaVariation: fallback injecte depuis le referentiel Capago.");
+      } catch (error) {
+        logCapago(`visaVariation: fallback Capago impossible (${error instanceof Error ? error.message : "erreur inconnue"}).`);
+      }
+    }
+
+    async function ensureVisaChecklistSelectOnly() {
+      if (!passportData.typeVisa || !passportData.visaVariation) {
+        return;
+      }
+
+      try {
+        const data = await fetchCapagoVisaTypeData();
+        const visaTypeList = Array.isArray(data?.visa_type_list) ? data.visa_type_list : [];
+        const visaType = visaTypeList.find((item) => String(item.resource_id) === String(passportData.typeVisa));
+        const matchedVariation =
+          Array.isArray(visaType?.visa_variation_list)
+            ? visaType.visa_variation_list.find((item) =>
+                normalizedOptionCandidates("visaVariation", passportData.visaVariation).some((candidate) => {
+                  const value = normalized(item.visa_variation_id);
+                  const label = normalized(item.visa_variation_name);
+                  return candidate === value || candidate === label || label.includes(candidate);
+                })
+              )
+            : null;
+
+        if (!matchedVariation) {
+          return;
+        }
+
+        upsertCapagoSelect(
+          'precision2',
+          `precision2_traveller_${getCapagoTravellerIndex(section)}`,
+          Array.isArray(matchedVariation.validation_checklist_list)
+            ? matchedVariation.validation_checklist_list.map((item) => ({
+                value: item.validation_checklist_id,
+                label: item.validation_checklist_name
+              }))
+            : [],
+          '--'
+        );
+      } catch {}
+    }
+
+    async function ensureVisaFileVariationSelect() {
+      try {
+        const data = await fetchCapagoVisaFileVariationData();
+        const list = Array.isArray(data?.visa_file_variation_list) ? data.visa_file_variation_list : [];
+        upsertCapagoSelect(
+          'visa-file-variation',
+          `visa_file_variation_traveller_${getCapagoTravellerIndex(section)}`,
+          list.map((item) => ({
+            value: item.id,
+            label: item.title
+          })),
+          '- -'
+        );
+      } catch (error) {
+        logCapago(`visaFileVariation: fallback Capago impossible (${error instanceof Error ? error.message : "erreur inconnue"}).`);
+      }
+    }
+
+    function upsertCapagoSelect(dataInput, fieldName, options, placeholderLabel) {
+      const wrapper = section.querySelector(`.field-wrapper[data-input="${dataInput}"]`);
+      if (!wrapper) {
+        return null;
+      }
+
+      cleanupCapagoFallbackSelects(dataInput);
+
+      let select =
+        Array.from(wrapper.querySelectorAll("select")).find(
+          (candidate) => candidate.dataset.autofillFallback !== "true"
+        ) ||
+        null;
+
+      if (!select) {
+        select = document.createElement("select");
+        select.name = fieldName;
+        select.id = fieldName;
+        select.dataset.autofillFallback = "true";
+        wrapper.appendChild(select);
+      }
+
+      const placeholder = placeholderLabel === "- -" ? "- -" : "--";
+      select.innerHTML =
+        [`<option value="" selected>${placeholder}</option>`]
+          .concat(
+            options.map((item) => `<option value="${escapeHtml(String(item.value))}">${escapeHtml(String(item.label))}</option>`)
+          )
+          .join("");
+
+      wrapper.style.display = "block";
+
+      const maybeJQuery = window.jQuery || window.$;
+      if (typeof maybeJQuery === "function") {
+        try {
+          const jqueryElement = maybeJQuery(select);
+          if (typeof jqueryElement.selectric === "function") {
+            jqueryElement.selectric({ disableOnMobile: false });
+            jqueryElement.selectric("refresh");
+          }
+        } catch {}
+      }
+
+      return select;
+    }
+
+    function cleanupCapagoFallbackSelects(dataInput) {
+      const wrapper = section.querySelector(`.field-wrapper[data-input="${dataInput}"]`);
+      if (!wrapper) {
+        return;
+      }
+
+      wrapper
+        .querySelectorAll('select[data-autofill-fallback="true"]')
+        .forEach((select) => {
+          const closestWrapper = select.closest('.selectric-wrapper');
+          if (closestWrapper && wrapper.contains(closestWrapper)) {
+            closestWrapper.remove();
+            return;
+          }
+
+          select.remove();
+        });
+    }
+
+    function pickCapagoSelect(dataInput, fieldName) {
+      const wrapper = section.querySelector(`.field-wrapper[data-input="${dataInput}"]`);
+      if (!wrapper) {
+        return null;
+      }
+
+      const candidates = Array.from(wrapper.querySelectorAll("select"));
+      const nativeSelect = candidates.find(
+        (candidate) => candidate.dataset.autofillFallback !== "true"
+      );
+
+      if (nativeSelect) {
+        cleanupCapagoFallbackSelects(dataInput);
+        return nativeSelect;
+      }
+
+      return candidates[candidates.length - 1] || null;
+    }
+
+    async function stabilizeCapagoSelect(getElement, key, value, repair, filledKey, timeoutMs = 7000) {
+      if (!value) {
+        return 0;
+      }
+
+      const wanted = normalizedOptionCandidates(key, value);
+      const start = Date.now();
+      let attempt = 0;
+
+      while (Date.now() - start < timeoutMs) {
+        const element = getElement();
+        if (element instanceof HTMLSelectElement) {
+          const selectedText = normalized(element.selectedOptions?.[0]?.textContent || "");
+          const selectedValue = normalized(element.value);
+          const matched = wanted.some((candidate) => {
+            return candidate === selectedValue || candidate === selectedText || selectedText.includes(candidate);
+          });
+
+          if (matched) {
+            return 1;
+          }
+
+          if (element.options.length > 1) {
+            applyValue(element, key, value);
+          }
+        }
+
+        if (typeof repair === "function" && (attempt === 0 || attempt % 3 === 0)) {
+          await repair();
+        }
+
+        attempt += 1;
+        await sleep(350);
+      }
+
+      logCapago(`${filledKey}: selection non stable pour "${value}". ${describeSelectOptions(getElement())}`);
+      return 0;
+    }
+
+    async function fetchCapagoVisaTypeData() {
+      const endpoint = new URL("WebSite_getApplicableVisaTypeList", window.location.href);
+      endpoint.searchParams.set("capago_center_id", getCapagoCenterId());
+      const response = await fetch(endpoint.toString(), { credentials: "include" });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    }
+
+    async function fetchCapagoVisaFileVariationData() {
+      const endpoint = new URL("WebSite_getVisaFileVariationCategoryList", window.location.href);
+      const response = await fetch(endpoint.toString(), { credentials: "include" });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.json();
+    }
+
+    function getCapagoCenterId() {
+      const checkedArea = document.querySelector('input[name="area"]:checked');
+      if (checkedArea?.value) {
+        return checkedArea.value;
+      }
+
+      if (window.location.pathname.toLowerCase().includes("annaba")) {
+        return "capago_ANB";
+      }
+
+      const firstArea = document.querySelector('input[name="area"][value]');
+      return firstArea?.value || "capago_ANB";
+    }
+
+    function getCapagoTravellerIndex(currentSection) {
+      const field = currentSection.querySelector("[name*='_traveller_'], [id*='_traveller_']");
+      const source = field?.getAttribute("name") || field?.getAttribute("id") || "";
+      const match = source.match(/_traveller_(\d+)/);
+      return match?.[1] || "1";
+    }
+
+    function escapeHtml(value) {
+      return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;");
     }
 
     function scheduleDateSelectRetries() {
@@ -2255,6 +2840,47 @@ async function fillPassportFieldsOnPage(passportData) {
       activeItem.classList.add("selected");
       activeItem.setAttribute("aria-selected", "true");
     }
+  }
+
+  function forceSelectricOptionActivation(element, option) {
+    const wrapper = element.closest(".selectric-wrapper");
+    if (!wrapper) {
+      return;
+    }
+
+    const optionIndex = Array.from(element.options).indexOf(option);
+    const clickable = wrapper.querySelector(".selectric");
+    const activeItem = wrapper.querySelector(`.selectric-items li[data-index="${optionIndex}"]`);
+
+    if (clickable) {
+      clickable.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      clickable.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+      clickable.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    }
+
+    if (activeItem) {
+      activeItem.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      activeItem.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+      activeItem.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    }
+  }
+
+  function describeSelectOptions(element) {
+    if (!(element instanceof HTMLSelectElement)) {
+      return "Champ select absent.";
+    }
+
+    const options = Array.from(element.options)
+      .map((option) => (option.textContent || option.value || "").trim())
+      .filter(Boolean)
+      .filter((label) => !/^-\s*-?$/.test(label))
+      .slice(0, 8);
+
+    if (!options.length) {
+      return "Aucune option chargee.";
+    }
+
+    return `Options visibles: ${options.join(" | ")}`;
   }
 
   function buildDayCandidates(value) {

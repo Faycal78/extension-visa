@@ -56,6 +56,12 @@
         <div class="split">
           <div>
             <p class="label">Fiches du dashboard</p>
+            <input
+              id="dashboard-search"
+              class="select"
+              type="text"
+              placeholder="Rechercher par nom ou prenom"
+            />
             <select id="dashboard-records" class="select">
               <option value="">Choisir une fiche enregistree</option>
             </select>
@@ -94,6 +100,11 @@
       <section class="card">
         <p class="label">Champs passeport</p>
         <pre id="fields-result" class="result empty">Aucun champ detecte pour le moment.</pre>
+      </section>
+
+      <section class="card">
+        <p class="label">Journal de remplissage</p>
+        <pre id="autofill-log" class="result empty">Aucun remplissage lance pour le moment.</pre>
       </section>
     </main>
 
